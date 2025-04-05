@@ -123,13 +123,13 @@ primaryExp
 unaryExp
 unaryOp
 mulExp
-mulOP
+mulOp
 addExp
 addOp
 relExp
-relOP
+relOp
 eqExp
-eqOP
+eqOp
 lAndExp
 lOrExp
 intConst

@@ -50,20 +50,20 @@ primaryExp  : L_PAREN exp R_PAREN
 
 unaryExp    : primaryExp
             | unaryOp unaryExp
-            | IDENT L_PAREN funcRParams? R_PAREN;
+            | IDENT L_PAREN funcRParams? R_PAREN; // func(a, b, c)
 unaryOp     : PLUS | MINUS | NOT;
 
-mulExp      : unaryExp (mulOP unaryExp)*;
-mulOP       : MUL | DIV | MOD;
+mulExp      : unaryExp (mulOp unaryExp)*;
+mulOp       : MUL | DIV | MOD;
 
 addExp      : mulExp (addOp mulExp)*;   
 addOp       : PLUS  | MINUS;
 
-relExp      : addExp (relOP addExp)*;
-relOP       : GT | LT | GE | LE;
+relExp      : addExp (relOp addExp)*;
+relOp       : GT | LT | GE | LE;
 
-eqExp       : relExp (eqOP relExp)*;
-eqOP        : EQ | NEQ;
+eqExp       : relExp (eqOp relExp)*;
+eqOp        : EQ | NEQ;
 
 lAndExp     : eqExp (AND eqExp)*;
 

@@ -5,6 +5,7 @@
 // Generated from Cact.g4 by ANTLR 4.13.1
 
 
+#include "CactListener.h"
 #include "CactVisitor.h"
 
 #include "CactParser.h"
@@ -58,8 +59,8 @@ void cactParserInitialize() {
       "program", "compUnit", "decl", "constDecl", "bType", "constDef", "constInitVal", 
       "varDecl", "varDef", "funcDef", "funcType", "funcFParams", "funcFParam", 
       "block", "blockItem", "stmt", "exp", "constExp", "cond", "lVal", "number", 
-      "funcRParams", "primaryExp", "unaryExp", "unaryOp", "mulExp", "mulOP", 
-      "addExp", "addOp", "relExp", "relOP", "eqExp", "eqOP", "lAndExp", 
+      "funcRParams", "primaryExp", "unaryExp", "unaryOp", "mulExp", "mulOp", 
+      "addExp", "addOp", "relExp", "relOp", "eqExp", "eqOp", "lAndExp", 
       "lOrExp", "intConst"
     },
     std::vector<std::string>{
@@ -258,6 +259,18 @@ size_t CactParser::ProgramContext::getRuleIndex() const {
   return CactParser::RuleProgram;
 }
 
+void CactParser::ProgramContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterProgram(this);
+}
+
+void CactParser::ProgramContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitProgram(this);
+}
+
 
 std::any CactParser::ProgramContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -317,6 +330,18 @@ CactParser::FuncDefContext* CactParser::CompUnitContext::funcDef(size_t i) {
 
 size_t CactParser::CompUnitContext::getRuleIndex() const {
   return CactParser::RuleCompUnit;
+}
+
+void CactParser::CompUnitContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterCompUnit(this);
+}
+
+void CactParser::CompUnitContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitCompUnit(this);
 }
 
 
@@ -396,6 +421,18 @@ CactParser::VarDeclContext* CactParser::DeclContext::varDecl() {
 
 size_t CactParser::DeclContext::getRuleIndex() const {
   return CactParser::RuleDecl;
+}
+
+void CactParser::DeclContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterDecl(this);
+}
+
+void CactParser::DeclContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitDecl(this);
 }
 
 
@@ -491,6 +528,18 @@ size_t CactParser::ConstDeclContext::getRuleIndex() const {
   return CactParser::RuleConstDecl;
 }
 
+void CactParser::ConstDeclContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterConstDecl(this);
+}
+
+void CactParser::ConstDeclContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitConstDecl(this);
+}
+
 
 std::any CactParser::ConstDeclContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -569,6 +618,18 @@ tree::TerminalNode* CactParser::BTypeContext::FLOAT_KW() {
 
 size_t CactParser::BTypeContext::getRuleIndex() const {
   return CactParser::RuleBType;
+}
+
+void CactParser::BTypeContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterBType(this);
+}
+
+void CactParser::BTypeContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitBType(this);
 }
 
 
@@ -661,6 +722,18 @@ size_t CactParser::ConstDefContext::getRuleIndex() const {
   return CactParser::RuleConstDef;
 }
 
+void CactParser::ConstDefContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterConstDef(this);
+}
+
+void CactParser::ConstDefContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitConstDef(this);
+}
+
 
 std::any CactParser::ConstDefContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -751,6 +824,18 @@ tree::TerminalNode* CactParser::ConstInitValContext::COMMA(size_t i) {
 
 size_t CactParser::ConstInitValContext::getRuleIndex() const {
   return CactParser::RuleConstInitVal;
+}
+
+void CactParser::ConstInitValContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterConstInitVal(this);
+}
+
+void CactParser::ConstInitValContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitConstInitVal(this);
 }
 
 
@@ -872,6 +957,18 @@ size_t CactParser::VarDeclContext::getRuleIndex() const {
   return CactParser::RuleVarDecl;
 }
 
+void CactParser::VarDeclContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterVarDecl(this);
+}
+
+void CactParser::VarDeclContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitVarDecl(this);
+}
+
 
 std::any CactParser::VarDeclContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -970,6 +1067,18 @@ size_t CactParser::VarDefContext::getRuleIndex() const {
   return CactParser::RuleVarDef;
 }
 
+void CactParser::VarDefContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterVarDef(this);
+}
+
+void CactParser::VarDefContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitVarDef(this);
+}
+
 
 std::any CactParser::VarDefContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -1064,6 +1173,18 @@ size_t CactParser::FuncDefContext::getRuleIndex() const {
   return CactParser::RuleFuncDef;
 }
 
+void CactParser::FuncDefContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterFuncDef(this);
+}
+
+void CactParser::FuncDefContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitFuncDef(this);
+}
+
 
 std::any CactParser::FuncDefContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -1133,6 +1254,18 @@ tree::TerminalNode* CactParser::FuncTypeContext::VOID_KW() {
 
 size_t CactParser::FuncTypeContext::getRuleIndex() const {
   return CactParser::RuleFuncType;
+}
+
+void CactParser::FuncTypeContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterFuncType(this);
+}
+
+void CactParser::FuncTypeContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitFuncType(this);
 }
 
 
@@ -1214,6 +1347,18 @@ tree::TerminalNode* CactParser::FuncFParamsContext::COMMA(size_t i) {
 
 size_t CactParser::FuncFParamsContext::getRuleIndex() const {
   return CactParser::RuleFuncFParams;
+}
+
+void CactParser::FuncFParamsContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterFuncFParams(this);
+}
+
+void CactParser::FuncFParamsContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitFuncFParams(this);
 }
 
 
@@ -1304,6 +1449,18 @@ CactParser::IntConstContext* CactParser::FuncFParamContext::intConst(size_t i) {
 
 size_t CactParser::FuncFParamContext::getRuleIndex() const {
   return CactParser::RuleFuncFParam;
+}
+
+void CactParser::FuncFParamContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterFuncFParam(this);
+}
+
+void CactParser::FuncFParamContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitFuncFParam(this);
 }
 
 
@@ -1403,6 +1560,18 @@ size_t CactParser::BlockContext::getRuleIndex() const {
   return CactParser::RuleBlock;
 }
 
+void CactParser::BlockContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterBlock(this);
+}
+
+void CactParser::BlockContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitBlock(this);
+}
+
 
 std::any CactParser::BlockContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -1468,6 +1637,18 @@ CactParser::StmtContext* CactParser::BlockItemContext::stmt() {
 
 size_t CactParser::BlockItemContext::getRuleIndex() const {
   return CactParser::RuleBlockItem;
+}
+
+void CactParser::BlockItemContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterBlockItem(this);
+}
+
+void CactParser::BlockItemContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitBlockItem(this);
 }
 
 
@@ -1614,6 +1795,18 @@ tree::TerminalNode* CactParser::StmtContext::RETURN_KW() {
 
 size_t CactParser::StmtContext::getRuleIndex() const {
   return CactParser::RuleStmt;
+}
+
+void CactParser::StmtContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterStmt(this);
+}
+
+void CactParser::StmtContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitStmt(this);
 }
 
 
@@ -1786,6 +1979,18 @@ size_t CactParser::ExpContext::getRuleIndex() const {
   return CactParser::RuleExp;
 }
 
+void CactParser::ExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterExp(this);
+}
+
+void CactParser::ExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitExp(this);
+}
+
 
 std::any CactParser::ExpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -1835,6 +2040,18 @@ size_t CactParser::ConstExpContext::getRuleIndex() const {
   return CactParser::RuleConstExp;
 }
 
+void CactParser::ConstExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterConstExp(this);
+}
+
+void CactParser::ConstExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitConstExp(this);
+}
+
 
 std::any CactParser::ConstExpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -1882,6 +2099,18 @@ CactParser::LOrExpContext* CactParser::CondContext::lOrExp() {
 
 size_t CactParser::CondContext::getRuleIndex() const {
   return CactParser::RuleCond;
+}
+
+void CactParser::CondContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterCond(this);
+}
+
+void CactParser::CondContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitCond(this);
 }
 
 
@@ -1957,6 +2186,18 @@ size_t CactParser::LValContext::getRuleIndex() const {
   return CactParser::RuleLVal;
 }
 
+void CactParser::LValContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterLVal(this);
+}
+
+void CactParser::LValContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitLVal(this);
+}
+
 
 std::any CactParser::LValContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -2027,6 +2268,18 @@ tree::TerminalNode* CactParser::NumberContext::CharConst() {
 
 size_t CactParser::NumberContext::getRuleIndex() const {
   return CactParser::RuleNumber;
+}
+
+void CactParser::NumberContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterNumber(this);
+}
+
+void CactParser::NumberContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitNumber(this);
 }
 
 
@@ -2116,6 +2369,18 @@ size_t CactParser::FuncRParamsContext::getRuleIndex() const {
   return CactParser::RuleFuncRParams;
 }
 
+void CactParser::FuncRParamsContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterFuncRParams(this);
+}
+
+void CactParser::FuncRParamsContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitFuncRParams(this);
+}
+
 
 std::any CactParser::FuncRParamsContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -2192,6 +2457,18 @@ CactParser::NumberContext* CactParser::PrimaryExpContext::number() {
 
 size_t CactParser::PrimaryExpContext::getRuleIndex() const {
   return CactParser::RulePrimaryExp;
+}
+
+void CactParser::PrimaryExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterPrimaryExp(this);
+}
+
+void CactParser::PrimaryExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitPrimaryExp(this);
 }
 
 
@@ -2299,6 +2576,18 @@ size_t CactParser::UnaryExpContext::getRuleIndex() const {
   return CactParser::RuleUnaryExp;
 }
 
+void CactParser::UnaryExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterUnaryExp(this);
+}
+
+void CactParser::UnaryExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitUnaryExp(this);
+}
+
 
 std::any CactParser::UnaryExpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -2396,6 +2685,18 @@ size_t CactParser::UnaryOpContext::getRuleIndex() const {
   return CactParser::RuleUnaryOp;
 }
 
+void CactParser::UnaryOpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterUnaryOp(this);
+}
+
+void CactParser::UnaryOpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitUnaryOp(this);
+}
+
 
 std::any CactParser::UnaryOpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -2453,17 +2754,29 @@ CactParser::UnaryExpContext* CactParser::MulExpContext::unaryExp(size_t i) {
   return getRuleContext<CactParser::UnaryExpContext>(i);
 }
 
-std::vector<CactParser::MulOPContext *> CactParser::MulExpContext::mulOP() {
-  return getRuleContexts<CactParser::MulOPContext>();
+std::vector<CactParser::MulOpContext *> CactParser::MulExpContext::mulOp() {
+  return getRuleContexts<CactParser::MulOpContext>();
 }
 
-CactParser::MulOPContext* CactParser::MulExpContext::mulOP(size_t i) {
-  return getRuleContext<CactParser::MulOPContext>(i);
+CactParser::MulOpContext* CactParser::MulExpContext::mulOp(size_t i) {
+  return getRuleContext<CactParser::MulOpContext>(i);
 }
 
 
 size_t CactParser::MulExpContext::getRuleIndex() const {
   return CactParser::RuleMulExp;
+}
+
+void CactParser::MulExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterMulExp(this);
+}
+
+void CactParser::MulExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitMulExp(this);
 }
 
 
@@ -2496,7 +2809,7 @@ CactParser::MulExpContext* CactParser::mulExp() {
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 58720256) != 0)) {
       setState(291);
-      mulOP();
+      mulOp();
       setState(292);
       unaryExp();
       setState(298);
@@ -2514,40 +2827,52 @@ CactParser::MulExpContext* CactParser::mulExp() {
   return _localctx;
 }
 
-//----------------- MulOPContext ------------------------------------------------------------------
+//----------------- MulOpContext ------------------------------------------------------------------
 
-CactParser::MulOPContext::MulOPContext(ParserRuleContext *parent, size_t invokingState)
+CactParser::MulOpContext::MulOpContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CactParser::MulOPContext::MUL() {
+tree::TerminalNode* CactParser::MulOpContext::MUL() {
   return getToken(CactParser::MUL, 0);
 }
 
-tree::TerminalNode* CactParser::MulOPContext::DIV() {
+tree::TerminalNode* CactParser::MulOpContext::DIV() {
   return getToken(CactParser::DIV, 0);
 }
 
-tree::TerminalNode* CactParser::MulOPContext::MOD() {
+tree::TerminalNode* CactParser::MulOpContext::MOD() {
   return getToken(CactParser::MOD, 0);
 }
 
 
-size_t CactParser::MulOPContext::getRuleIndex() const {
-  return CactParser::RuleMulOP;
+size_t CactParser::MulOpContext::getRuleIndex() const {
+  return CactParser::RuleMulOp;
+}
+
+void CactParser::MulOpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterMulOp(this);
+}
+
+void CactParser::MulOpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitMulOp(this);
 }
 
 
-std::any CactParser::MulOPContext::accept(tree::ParseTreeVisitor *visitor) {
+std::any CactParser::MulOpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
-    return parserVisitor->visitMulOP(this);
+    return parserVisitor->visitMulOp(this);
   else
     return visitor->visitChildren(this);
 }
 
-CactParser::MulOPContext* CactParser::mulOP() {
-  MulOPContext *_localctx = _tracker.createInstance<MulOPContext>(_ctx, getState());
-  enterRule(_localctx, 52, CactParser::RuleMulOP);
+CactParser::MulOpContext* CactParser::mulOp() {
+  MulOpContext *_localctx = _tracker.createInstance<MulOpContext>(_ctx, getState());
+  enterRule(_localctx, 52, CactParser::RuleMulOp);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2605,6 +2930,18 @@ CactParser::AddOpContext* CactParser::AddExpContext::addOp(size_t i) {
 
 size_t CactParser::AddExpContext::getRuleIndex() const {
   return CactParser::RuleAddExp;
+}
+
+void CactParser::AddExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterAddExp(this);
+}
+
+void CactParser::AddExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitAddExp(this);
 }
 
 
@@ -2675,6 +3012,18 @@ size_t CactParser::AddOpContext::getRuleIndex() const {
   return CactParser::RuleAddOp;
 }
 
+void CactParser::AddOpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterAddOp(this);
+}
+
+void CactParser::AddOpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitAddOp(this);
+}
+
 
 std::any CactParser::AddOpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -2733,17 +3082,29 @@ CactParser::AddExpContext* CactParser::RelExpContext::addExp(size_t i) {
   return getRuleContext<CactParser::AddExpContext>(i);
 }
 
-std::vector<CactParser::RelOPContext *> CactParser::RelExpContext::relOP() {
-  return getRuleContexts<CactParser::RelOPContext>();
+std::vector<CactParser::RelOpContext *> CactParser::RelExpContext::relOp() {
+  return getRuleContexts<CactParser::RelOpContext>();
 }
 
-CactParser::RelOPContext* CactParser::RelExpContext::relOP(size_t i) {
-  return getRuleContext<CactParser::RelOPContext>(i);
+CactParser::RelOpContext* CactParser::RelExpContext::relOp(size_t i) {
+  return getRuleContext<CactParser::RelOpContext>(i);
 }
 
 
 size_t CactParser::RelExpContext::getRuleIndex() const {
   return CactParser::RuleRelExp;
+}
+
+void CactParser::RelExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterRelExp(this);
+}
+
+void CactParser::RelExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitRelExp(this);
 }
 
 
@@ -2776,7 +3137,7 @@ CactParser::RelExpContext* CactParser::relExp() {
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8053063680) != 0)) {
       setState(313);
-      relOP();
+      relOp();
       setState(314);
       addExp();
       setState(320);
@@ -2794,44 +3155,56 @@ CactParser::RelExpContext* CactParser::relExp() {
   return _localctx;
 }
 
-//----------------- RelOPContext ------------------------------------------------------------------
+//----------------- RelOpContext ------------------------------------------------------------------
 
-CactParser::RelOPContext::RelOPContext(ParserRuleContext *parent, size_t invokingState)
+CactParser::RelOpContext::RelOpContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CactParser::RelOPContext::GT() {
+tree::TerminalNode* CactParser::RelOpContext::GT() {
   return getToken(CactParser::GT, 0);
 }
 
-tree::TerminalNode* CactParser::RelOPContext::LT() {
+tree::TerminalNode* CactParser::RelOpContext::LT() {
   return getToken(CactParser::LT, 0);
 }
 
-tree::TerminalNode* CactParser::RelOPContext::GE() {
+tree::TerminalNode* CactParser::RelOpContext::GE() {
   return getToken(CactParser::GE, 0);
 }
 
-tree::TerminalNode* CactParser::RelOPContext::LE() {
+tree::TerminalNode* CactParser::RelOpContext::LE() {
   return getToken(CactParser::LE, 0);
 }
 
 
-size_t CactParser::RelOPContext::getRuleIndex() const {
-  return CactParser::RuleRelOP;
+size_t CactParser::RelOpContext::getRuleIndex() const {
+  return CactParser::RuleRelOp;
+}
+
+void CactParser::RelOpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterRelOp(this);
+}
+
+void CactParser::RelOpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitRelOp(this);
 }
 
 
-std::any CactParser::RelOPContext::accept(tree::ParseTreeVisitor *visitor) {
+std::any CactParser::RelOpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
-    return parserVisitor->visitRelOP(this);
+    return parserVisitor->visitRelOp(this);
   else
     return visitor->visitChildren(this);
 }
 
-CactParser::RelOPContext* CactParser::relOP() {
-  RelOPContext *_localctx = _tracker.createInstance<RelOPContext>(_ctx, getState());
-  enterRule(_localctx, 60, CactParser::RuleRelOP);
+CactParser::RelOpContext* CactParser::relOp() {
+  RelOpContext *_localctx = _tracker.createInstance<RelOpContext>(_ctx, getState());
+  enterRule(_localctx, 60, CactParser::RuleRelOp);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2878,17 +3251,29 @@ CactParser::RelExpContext* CactParser::EqExpContext::relExp(size_t i) {
   return getRuleContext<CactParser::RelExpContext>(i);
 }
 
-std::vector<CactParser::EqOPContext *> CactParser::EqExpContext::eqOP() {
-  return getRuleContexts<CactParser::EqOPContext>();
+std::vector<CactParser::EqOpContext *> CactParser::EqExpContext::eqOp() {
+  return getRuleContexts<CactParser::EqOpContext>();
 }
 
-CactParser::EqOPContext* CactParser::EqExpContext::eqOP(size_t i) {
-  return getRuleContext<CactParser::EqOPContext>(i);
+CactParser::EqOpContext* CactParser::EqExpContext::eqOp(size_t i) {
+  return getRuleContext<CactParser::EqOpContext>(i);
 }
 
 
 size_t CactParser::EqExpContext::getRuleIndex() const {
   return CactParser::RuleEqExp;
+}
+
+void CactParser::EqExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterEqExp(this);
+}
+
+void CactParser::EqExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitEqExp(this);
 }
 
 
@@ -2922,7 +3307,7 @@ CactParser::EqExpContext* CactParser::eqExp() {
 
     || _la == CactParser::NEQ) {
       setState(324);
-      eqOP();
+      eqOp();
       setState(325);
       relExp();
       setState(331);
@@ -2940,36 +3325,48 @@ CactParser::EqExpContext* CactParser::eqExp() {
   return _localctx;
 }
 
-//----------------- EqOPContext ------------------------------------------------------------------
+//----------------- EqOpContext ------------------------------------------------------------------
 
-CactParser::EqOPContext::EqOPContext(ParserRuleContext *parent, size_t invokingState)
+CactParser::EqOpContext::EqOpContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* CactParser::EqOPContext::EQ() {
+tree::TerminalNode* CactParser::EqOpContext::EQ() {
   return getToken(CactParser::EQ, 0);
 }
 
-tree::TerminalNode* CactParser::EqOPContext::NEQ() {
+tree::TerminalNode* CactParser::EqOpContext::NEQ() {
   return getToken(CactParser::NEQ, 0);
 }
 
 
-size_t CactParser::EqOPContext::getRuleIndex() const {
-  return CactParser::RuleEqOP;
+size_t CactParser::EqOpContext::getRuleIndex() const {
+  return CactParser::RuleEqOp;
+}
+
+void CactParser::EqOpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterEqOp(this);
+}
+
+void CactParser::EqOpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitEqOp(this);
 }
 
 
-std::any CactParser::EqOPContext::accept(tree::ParseTreeVisitor *visitor) {
+std::any CactParser::EqOpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
-    return parserVisitor->visitEqOP(this);
+    return parserVisitor->visitEqOp(this);
   else
     return visitor->visitChildren(this);
 }
 
-CactParser::EqOPContext* CactParser::eqOP() {
-  EqOPContext *_localctx = _tracker.createInstance<EqOPContext>(_ctx, getState());
-  enterRule(_localctx, 64, CactParser::RuleEqOP);
+CactParser::EqOpContext* CactParser::eqOp() {
+  EqOpContext *_localctx = _tracker.createInstance<EqOpContext>(_ctx, getState());
+  enterRule(_localctx, 64, CactParser::RuleEqOp);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3028,6 +3425,18 @@ tree::TerminalNode* CactParser::LAndExpContext::AND(size_t i) {
 
 size_t CactParser::LAndExpContext::getRuleIndex() const {
   return CactParser::RuleLAndExp;
+}
+
+void CactParser::LAndExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterLAndExp(this);
+}
+
+void CactParser::LAndExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitLAndExp(this);
 }
 
 
@@ -3104,6 +3513,18 @@ size_t CactParser::LOrExpContext::getRuleIndex() const {
   return CactParser::RuleLOrExp;
 }
 
+void CactParser::LOrExpContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterLOrExp(this);
+}
+
+void CactParser::LOrExpContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitLOrExp(this);
+}
+
 
 std::any CactParser::LOrExpContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
@@ -3172,6 +3593,18 @@ tree::TerminalNode* CactParser::IntConstContext::HEXADECIMAL_CONST() {
 
 size_t CactParser::IntConstContext::getRuleIndex() const {
   return CactParser::RuleIntConst;
+}
+
+void CactParser::IntConstContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterIntConst(this);
+}
+
+void CactParser::IntConstContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<CactListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitIntConst(this);
 }
 
 

@@ -122,7 +122,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitMulOP(CactParser::MulOPContext *ctx) override {
+  virtual std::any visitMulOp(CactParser::MulOpContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -138,7 +138,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitRelOP(CactParser::RelOPContext *ctx) override {
+  virtual std::any visitRelOp(CactParser::RelOpContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -146,7 +146,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitEqOP(CactParser::EqOPContext *ctx) override {
+  virtual std::any visitEqOp(CactParser::EqOpContext *ctx) override {
     return visitChildren(ctx);
   }
 

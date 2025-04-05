@@ -74,7 +74,7 @@ public:
 
     virtual std::any visitMulExp(CactParser::MulExpContext *context) = 0;
 
-    virtual std::any visitMulOP(CactParser::MulOPContext *context) = 0;
+    virtual std::any visitMulOp(CactParser::MulOpContext *context) = 0;
 
     virtual std::any visitAddExp(CactParser::AddExpContext *context) = 0;
 
@@ -82,11 +82,11 @@ public:
 
     virtual std::any visitRelExp(CactParser::RelExpContext *context) = 0;
 
-    virtual std::any visitRelOP(CactParser::RelOPContext *context) = 0;
+    virtual std::any visitRelOp(CactParser::RelOpContext *context) = 0;
 
     virtual std::any visitEqExp(CactParser::EqExpContext *context) = 0;
 
-    virtual std::any visitEqOP(CactParser::EqOPContext *context) = 0;
+    virtual std::any visitEqOp(CactParser::EqOpContext *context) = 0;
 
     virtual std::any visitLAndExp(CactParser::LAndExpContext *context) = 0;
 
