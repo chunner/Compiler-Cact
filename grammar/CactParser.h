@@ -18,12 +18,12 @@ public:
     CONST_KW = 1, INT_KW = 2, DOUBLE_KW = 3, CHAR_KW = 4, FLOAT_KW = 5, 
     VOID_KW = 6, IF_KW = 7, ELSE_KW = 8, WHILE_KW = 9, BREAK_KW = 10, CONTINUE_KW = 11, 
     RETURN_KW = 12, IDENT = 13, DECIMAL_CONST = 14, OCTAL_CONST = 15, HEXADECIMAL_CONST = 16, 
-    FloatConst = 17, CharConst = 18, STRING = 19, PLUS = 20, MINUS = 21, 
-    NOT = 22, MUL = 23, DIV = 24, MOD = 25, ASSIGN = 26, EQ = 27, NEQ = 28, 
-    GT = 29, LT = 30, GE = 31, LE = 32, AND = 33, OR = 34, L_PAREN = 35, 
-    R_PAREN = 36, L_BRACE = 37, R_BRACE = 38, L_BRACKET = 39, R_BRACKET = 40, 
-    COMMA = 41, SEMICOLON = 42, DOUBLE_QUOTE = 43, WS = 44, LineComment = 45, 
-    BlockComment = 46
+    FloatConst = 17, EXPONENT = 18, CharConst = 19, STRING = 20, PLUS = 21, 
+    MINUS = 22, NOT = 23, MUL = 24, DIV = 25, MOD = 26, ASSIGN = 27, EQ = 28, 
+    NEQ = 29, GT = 30, LT = 31, GE = 32, LE = 33, AND = 34, OR = 35, L_PAREN = 36, 
+    R_PAREN = 37, L_BRACE = 38, R_BRACE = 39, L_BRACKET = 40, R_BRACKET = 41, 
+    COMMA = 42, SEMICOLON = 43, DOUBLE_QUOTE = 44, WS = 45, LineComment = 46, 
+    BlockComment = 47
   };
 
   enum {
@@ -111,6 +111,7 @@ public:
   public:
     CompUnitContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *EOF();
     std::vector<DeclContext *> decl();
     DeclContext* decl(size_t i);
     std::vector<FuncDefContext *> funcDef();
@@ -479,6 +480,7 @@ public:
     virtual size_t getRuleIndex() const override;
     IntConstContext *intConst();
     antlr4::tree::TerminalNode *FloatConst();
+    antlr4::tree::TerminalNode *EXPONENT();
     antlr4::tree::TerminalNode *CharConst();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;

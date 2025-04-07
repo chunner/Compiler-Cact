@@ -6,7 +6,7 @@ grammar Cact;
 
 /****** parser ******/
 program     : compUnit;
-compUnit    : (decl | funcDef)+;
+compUnit    : (decl | funcDef)+ EOF;
 // Decl
 decl        : constDecl | varDecl;
 
@@ -14,7 +14,7 @@ constDecl   : CONST_KW bType constDef (COMMA constDef)* SEMICOLON;// const int i
 bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW;
 constDef    : IDENT (L_BRACKET intConst R_BRACKET)* ASSIGN constInitVal;
 constInitVal: constExp 
-            | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE; 
+            | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE;  // { 1,2,3 ,4 }
 
 varDecl     : bType varDef (COMMA varDef)* SEMICOLON; // int id1[1][2] = 2, id2, id3[1] = {1,2};
 varDef      : IDENT (L_BRACKET intConst R_BRACKET)* (ASSIGN constInitVal)?;
@@ -40,7 +40,7 @@ exp         : addExp;
 constExp    : addExp;
 cond        : lOrExp;
 lVal        : IDENT (L_BRACKET exp R_BRACKET)*;
-number      : intConst | FloatConst | CharConst;
+number      : intConst | FloatConst | EXPONENT | CharConst;
 funcRParams : exp (COMMA exp)*;
 
 // 8 primary level
@@ -98,7 +98,8 @@ IDENT       : [a-zA-Z_][a-zA-Z_0-9]*;
 DECIMAL_CONST: [1-9][0-9]*;
 OCTAL_CONST : '0' [0-7]*;
 HEXADECIMAL_CONST: ('0x' | '0X') [0-9a-fA-F]+;
-FloatConst  : [0-9]+ '.' [0-9]+;
+FloatConst  : [0-9]* '.' [0-9]+ [fF]? | [0-9]+ '.' [0-9]* [Ff]?;
+EXPONENT    : (FloatConst|DECIMAL_CONST) [eE] [+\-]? [0-9]+ [fF]?;
 CharConst   : '\'' REGULAR_CHAR '\'';
 
 STRING      : DOUBLE_QUOTE REGULAR_CHAR*? DOUBLE_QUOTE;
