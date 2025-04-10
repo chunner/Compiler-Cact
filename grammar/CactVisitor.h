@@ -28,9 +28,9 @@ public:
 
     virtual std::any visitDecl(CactParser::DeclContext *context) = 0;
 
-    virtual std::any visitConstDecl(CactParser::ConstDeclContext *context) = 0;
-
     virtual std::any visitBType(CactParser::BTypeContext *context) = 0;
+
+    virtual std::any visitConstDecl(CactParser::ConstDeclContext *context) = 0;
 
     virtual std::any visitConstDef(CactParser::ConstDefContext *context) = 0;
 

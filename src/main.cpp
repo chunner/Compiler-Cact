@@ -204,15 +204,15 @@ int main(int argc, const char *argv[]) {
     parser.addErrorListener(new BailErrorListener());
     lexer.addErrorListener(new BailErrorListener());
 
-    // // === 获取语法树 ===
-    // CactParser::ProgramContext *tree = parser.program();
+    // === 获取语法树 ===
+    CactParser::ProgramContext *tree = parser.program();
 
-    // // === 打印语法树结构 ===
-    // std::cout << "==== Parse Tree ====" << std::endl;
-    // std::cout << tree->toStringTree(&parser) << std::endl;
+    // === 打印语法树结构 ===
+    std::cout << "==== Parse Tree ====" << std::endl;
+    std::cout << tree->toStringTree(&parser) << std::endl;
 
     Analysis visitor;
-    visitor.visit(parser.program());
+    visitor.visit(tree);
 
     return 0;
 }

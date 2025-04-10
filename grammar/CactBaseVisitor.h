@@ -30,11 +30,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitConstDecl(CactParser::ConstDeclContext *ctx) override {
+  virtual std::any visitBType(CactParser::BTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitBType(CactParser::BTypeContext *ctx) override {
+  virtual std::any visitConstDecl(CactParser::ConstDeclContext *ctx) override {
     return visitChildren(ctx);
   }
 

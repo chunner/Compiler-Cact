@@ -9,9 +9,9 @@ program     : compUnit;
 compUnit    : (decl | funcDef)+ EOF;
 // Decl
 decl        : constDecl | varDecl;
+bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW;
 
 constDecl   : CONST_KW bType constDef (COMMA constDef)* SEMICOLON;// const int id1[1][2] = 1, id2 = 2, id3[1] = {1,2};
-bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW;
 constDef    : IDENT (L_BRACKET intConst R_BRACKET)* ASSIGN constInitVal;
 constInitVal: constExp 
             | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE;  // { 1,2,3 ,4 }
@@ -37,7 +37,7 @@ stmt        : lVal ASSIGN exp SEMICOLON   // id[1][2] = 1;
             | exp? SEMICOLON;                   //  exp;
 
 exp         : addExp;     
-constExp    : addExp;
+constExp    : number;
 cond        : lOrExp;
 lVal        : IDENT (L_BRACKET exp R_BRACKET)*;
 number      : intConst | FloatConst | EXPONENT | CharConst;
@@ -107,9 +107,13 @@ fragment REGULAR_CHAR
    : (ESC | .)
    ;
 fragment ESC
-   : '\\"' | '\\\\'
-   ;
-
+    : '\\n'
+    | '\\t'
+    | '\\\''
+    | '\\"'
+    | '\\\\'
+    | '\\0'
+    ;
 PLUS        : '+';
 MINUS       : '-';
 NOT         : '!';
