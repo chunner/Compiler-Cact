@@ -9,10 +9,21 @@
 #include "CactParser.h"
 #include "CactVisitor.h"
 #include "CactBaseVisitor.h"
+
+#include "SymbolTable.h"
 using namespace antlr4;
 
 class Analysis : public CactVisitor {
 public:
+    SymbolTable *currentSymbolTable;
+
+    bool isConstant;
+    std::string currentType;
+
+
+
+
+
     std::any visitProgram(CactParser::ProgramContext *context) override;
     std::any visitCompUnit(CactParser::CompUnitContext *context) override;
     std::any visitDecl(CactParser::DeclContext *context) override;
