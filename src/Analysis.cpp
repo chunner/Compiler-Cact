@@ -7,6 +7,7 @@ std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     //std::cout << "enter rule [compUnit]!" << std::endl;
     currentSymbolTable = new SymbolTable(nullptr);
+    isGlobal = true;
     return visitChildren(context);
 }
 std::any Analysis::visitDecl(CactParser::DeclContext *context) {
@@ -15,7 +16,7 @@ std::any Analysis::visitDecl(CactParser::DeclContext *context) {
 }
 std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
     // std::cout << "enter rule [constDecl]!" << std::endl;
-    currentType = std::any_cast<std::string>(visitBType(context->bType()));
+    currentType = std::any_cast<BaseType>(visitBType(context->bType()));
     for (auto it : context->constDef()) {
         visitConstDef(it);
     }
@@ -23,17 +24,46 @@ std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
 std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     // std::cout << "enter rule [bType]!" << "\t";
     // std::cout << "the type is: " << context->getText().c_str() << std::endl;
-    if (context->INT_KW()) return std::string("int");
-    if (context->DOUBLE_KW()) return std::string("double");
-    if (context->CHAR_KW()) return std::string("char");
-    if (context->FLOAT_KW()) return std::string("float");
+    if (context->INT_KW()) return BaseType::INT;
+    if (context->DOUBLE_KW()) return BaseType::DOUBLE;
+    if (context->CHAR_KW()) return BaseType::CHAR;
+    if (context->FLOAT_KW()) return BaseType::FLOAT;
     std::cerr << "Error: Unknown type!" << std::endl;
     return std::string("unknown");
 }
 std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // std::cout << "enter rule [constDef]!" << "\t";
     // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
+    // check if the identifier is already defined
     std::string ident = context->IDENT()->getText();
+    if (currentSymbolTable->lookup(ident) != nullptr) {
+        std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
+        return nullptr;
+    }
+    // add symbol to symbol table
+    std::vector<int> dimSize;
+    for (auto it : context->intConst()) {
+        dimSize.push_back(std::stoi(it->getText()));
+    }
+    VarType symbolType{
+        currentType,
+        isConstant,
+        false, // not function
+        dimSize
+    };
+    Symbol symbol{
+        ident,
+        symbolType
+    };
+    currentSymbolTable->define(symbol);
+    // generate LLVM code
+    if (isGlobal) {
+        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), isConstant);
+        llvmmodule.addGlobalVar(globalVar);
+    } else {
+        std::stringstream ss;
+        ss << "%" << ident << " = alloca " << mapCactTypeToLLVM(symbolType);
+    }
     return visitChildren(context);
 }
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
@@ -157,7 +187,7 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
-    std::cout << "enter rule [intConst]!" << std::endl;
+    // std::cout << "enter rule [intConst]!" << std::endl;
     return visitChildren(context);
 }
 std::any Analysis::visitErrorNode(tree::ErrorNode *node) {

@@ -1,5 +1,33 @@
 #include "IRGenerator.h"
 
+std::string mapCactTypeToLLVM(const VarType &type) {
+    std::string llvmType;
+
+    switch (type.baseType) {
+        case BaseType::INT:
+            llvmType = "i32";
+            break;
+        case BaseType::DOUBLE:
+            llvmType = "double";
+            break; 
+        case BaseType::CHAR:
+            llvmType = "i8";
+            break;
+        case BaseType::FLOAT:
+            llvmType = "float";
+            break;
+        default:
+            llvmType = "void";
+            break;
+    }
+    if (type.isArray()) {
+        for (int dim : type.dimSizes) {
+            llvmType = "[" + std::to_string(dim) + " x " + llvmType + "]";
+        }
+    }
+    return llvmType;
+}
+
 LLVMBasicBlock::LLVMBasicBlock(std::string label) : label(std::move(label)) {
 
 }
@@ -43,23 +71,40 @@ std::string LLVMFunction::toString()const {
     ss << "}\n";
     return ss.str();
 }
-
-
-void LLVMModule::addFunction(const LLVMFunction &function) {
-    functions.push_back(function);
+LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant)
+    : name(std::move(name)), type(std::move(type)), initValue(std::move(initValue)), isConstant(isConstant) {
+}
+std::string LLVMGlobalVar::toString() const {
+    std::stringstream ss;
+    ss << "@" << name << " =";
+    if (isConstant) {
+        ss << " constant";
+    } else {
+        ss << " global";
+    }
+    if (!initValue.empty()) {
+        ss << " " << type << " " << initValue;
+    } else {
+        ss << " " << type;
+    }
+    ss << "\n";
+    return ss.str();
 }
 
-void LLVMModule::addGlobalVar(const LLVMBasicBlock &globalVar) {
-    globalVars.push_back(globalVar);
+void LLVMModule::addFunction(const LLVMFunction &function) {
+    entries.emplace_back(function);
+}
+
+void LLVMModule::addGlobalVar(const LLVMGlobalVar &globalVar) {
+    entries.emplace_back(globalVar);
 }
 
 std::string LLVMModule::toString()const {
     std::stringstream ss;
-    for (const auto &globalVar : globalVars) {
-        ss << globalVar.toString();
-    }
-    for (const auto &function : functions) {
-        ss << function.toString() << "\n";
+    for (const auto &entry : entries) {
+        std::visit([&ss](const auto &e) {
+            ss << e.toString();
+            }, entry);
     }
     return ss.str();
 }

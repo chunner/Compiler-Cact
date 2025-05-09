@@ -5,24 +5,33 @@
 #include <unordered_map>
 #include <iostream>
 
-enum class ValueType {
+enum class BaseType {
     INT,
     DOUBLE,
     CHAR,
     FLOAT,
-    VOID
+    VOID    // for function
 };
+struct VarType {
+    BaseType baseType;
+    bool isConst = false;
+    bool isFunction = false;
+
+    std::vector<int> dimSizes; // baseType ID [dimSizes[n]] [dimSizes[n-1]] ... [dimSizes[0]]
+    bool isArray() const {
+        return !dimSizes.empty();
+    }
+};
+
 enum class SymbolKind {
     VARIABLE,
     FUNCTION,
     CONSTANT
 };
+
 struct Symbol {
     std::string name;
-    ValueType type;
-    SymbolKind kind;
-    bool isArray = false;
-    int arraySize = 0;
+    VarType type;
 };
 
 

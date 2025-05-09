@@ -4,6 +4,11 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <variant>
+#include <SymbolTable.h>
+
+std::string mapCactTypeToLLVM(const VarType &type);
+
 struct LLVMValue {
     std::string name;
     std::string type;
@@ -31,12 +36,22 @@ public:
     std::string toString()const;
 };
 
+class LLVMGlobalVar {
+public:
+    std::string name;
+    std::string type;
+    std::string initValue;
+    bool isConstant;
+    LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant);
+    std::string toString() const;
+};
+
 class LLVMModule {
 public:
-    std::vector<LLVMFunction> functions;
-    std::vector<LLVMBasicBlock> globalVars;
+    using ModuleEntry = std::variant<LLVMFunction, LLVMGlobalVar>;
+    std::vector<ModuleEntry> entries;
     void addFunction(const LLVMFunction &function);
-    void addGlobalVar(const LLVMBasicBlock &globalVar);
+    void addGlobalVar(const LLVMGlobalVar &globalVar);
     std::string toString() const;
 };
 

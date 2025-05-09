@@ -2,6 +2,7 @@
 #define ANALYSIS_H
 
 #include <iostream>
+#include <vector>
 #include "antlr4-runtime.h"
 // #include "tree/ErrorNode.h"
 
@@ -11,16 +12,18 @@
 #include "CactBaseVisitor.h"
 
 #include "SymbolTable.h"
+#include "IRGenerator.h"
 using namespace antlr4;
 
 class Analysis : public CactVisitor {
 public:
     SymbolTable *currentSymbolTable;
+    bool isGlobal;
 
     bool isConstant;
-    std::string currentType;
+    BaseType currentType;
 
-
+    LLVMModule llvmmodule;
 
 
 
