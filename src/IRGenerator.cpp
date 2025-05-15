@@ -71,10 +71,7 @@ std::string LLVMFunction::toString()const {
     ss << "}\n";
     return ss.str();
 }
-LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant)
-    : name(std::move(name)), type(std::move(type)), initValue(std::move(initValue)), isConstant(isConstant) {
-}
-std::string LLVMGlobalVar::toString() const {
+LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant){
     std::stringstream ss;
     ss << "@" << name << " =";
     if (isConstant) {
@@ -88,7 +85,10 @@ std::string LLVMGlobalVar::toString() const {
         ss << " " << type;
     }
     ss << "\n";
-    return ss.str();
+    instruction = std::move(ss.str());
+}
+std::string LLVMGlobalVar::toString() const {
+    return instruction;
 }
 
 void LLVMModule::addFunction(const LLVMFunction &function) {

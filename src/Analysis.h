@@ -20,10 +20,11 @@ public:
     SymbolTable *currentSymbolTable;
     bool isGlobal;
 
-    bool isConstant;
+    // bool isConstant;
     BaseType currentType;
 
     LLVMModule llvmmodule;
+    LLVMBasicBlock *currentBlock;
 
 
 

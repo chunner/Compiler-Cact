@@ -21,7 +21,7 @@ public:
     std::string label;
     std::vector<std::string> instructions;
     LLVMBasicBlock(std::string label);
-    void addInstruction(const std::string &instructions);
+    void addInstruction(const std::string &instruction);
     std::string toString() const;
 };
 
@@ -38,10 +38,11 @@ public:
 
 class LLVMGlobalVar {
 public:
-    std::string name;
-    std::string type;
-    std::string initValue;
-    bool isConstant;
+    std::string instruction;
+    // std::string name;
+    // std::string type;
+    // std::string initValue;
+    // bool isConstant;
     LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant);
     std::string toString() const;
 };

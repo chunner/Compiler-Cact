@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
+#include <vector>
 
 enum class BaseType {
     INT,

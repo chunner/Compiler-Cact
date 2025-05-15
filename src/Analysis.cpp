@@ -29,7 +29,7 @@ std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     if (context->CHAR_KW()) return BaseType::CHAR;
     if (context->FLOAT_KW()) return BaseType::FLOAT;
     std::cerr << "Error: Unknown type!" << std::endl;
-    return std::string("unknown");
+    exit(EXIT_FAILURE);
 }
 std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // std::cout << "enter rule [constDef]!" << "\t";
@@ -38,6 +38,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     std::string ident = context->IDENT()->getText();
     if (currentSymbolTable->lookup(ident) != nullptr) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
+        exit(EXIT_FAILURE);
         return nullptr;
     }
     // add symbol to symbol table
@@ -45,24 +46,20 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     for (auto it : context->intConst()) {
         dimSize.push_back(std::stoi(it->getText()));
     }
-    VarType symbolType{
-        currentType,
-        isConstant,
-        false, // not function
-        dimSize
-    };
-    Symbol symbol{
-        ident,
-        symbolType
-    };
+    VarType symbolType{ currentType,true /*is const*/,false /* not function*/, dimSize };
+    Symbol symbol{ident,symbolType};
     currentSymbolTable->define(symbol);
     // generate LLVM code
     if (isGlobal) {
-        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), isConstant);
+        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
         ss << "%" << ident << " = alloca " << mapCactTypeToLLVM(symbolType);
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
+        ss << "store " << mapCactTypeToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << mapCactTypeToLLVM(symbolType) << "* %" << ident;
+        currentBlock->addInstruction(ss.str());
     }
     return visitChildren(context);
 }
@@ -71,12 +68,42 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
-    std::cout << "enter rule [varDecl]!" << std::endl;
-    return visitChildren(context);
+    //std::cout << "enter rule [varDecl]!" << std::endl;
+    currentType = std::any_cast<BaseType>(visitBType(context->bType()));
+    for (auto it : context->varDef()) {
+        visitVarDef(it);
+    }
+    // return visitChildren(context);
 }
 std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
-    std::cout << "enter rule [varDef]!" << "\t";
-    std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
+    // std::cout << "enter rule [varDef]!" << "\t";
+    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
+    std::string ident = context->IDENT()->getText();
+    // check if the identifier is already defined
+    if (currentSymbolTable->lookup(ident) != nullptr) {
+        std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    // add symbol to symbol table
+    std::vector<int> dimSize;
+    for (auto it : context->intConst()) {
+        dimSize.push_back(std::stoi(it->getText()));
+    }
+    VarType symbolType{ currentType,false /*not Const*/,false /* not function*/, dimSize };
+    Symbol symbol{ident,symbolType};
+    currentSymbolTable->define(symbol);
+    // generate LLVM code
+    if (isGlobal) {
+        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), false /* is Const*/);
+        llvmmodule.addGlobalVar(globalVar);
+    } else {
+        std::stringstream ss;
+        ss << "%" << ident << " = alloca " << mapCactTypeToLLVM(symbolType);
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
+        ss << "store " << mapCactTypeToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << mapCactTypeToLLVM(symbolType) << "* %" << ident;
+        currentBlock->addInstruction(ss.str());
+    }
     return visitChildren(context);
 }
 std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
