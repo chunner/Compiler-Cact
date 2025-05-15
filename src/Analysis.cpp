@@ -36,7 +36,8 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
     // check if the identifier is already defined
     std::string ident = context->IDENT()->getText();
-    if (currentSymbolTable->lookup(ident) != nullptr) {
+    Symbol *s = currentSymbolTable->lookup(ident);
+    if (s != nullptr && !s->type.isFunction) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
         return nullptr;
@@ -47,7 +48,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         dimSize.push_back(std::stoi(it->getText()));
     }
     VarType symbolType{ currentType,true /*is const*/,false /* not function*/, dimSize };
-    Symbol symbol{ident,symbolType};
+    Symbol symbol{ ident,symbolType };
     currentSymbolTable->define(symbol);
     // generate LLVM code
     if (isGlobal) {
@@ -80,7 +81,8 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    if (currentSymbolTable->lookup(ident) != nullptr) {
+    Symbol *s = currentSymbolTable->lookup(ident);
+    if (s != nullptr && !s->type.isFunction) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -90,7 +92,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         dimSize.push_back(std::stoi(it->getText()));
     }
     VarType symbolType{ currentType,false /*not Const*/,false /* not function*/, dimSize };
-    Symbol symbol{ident,symbolType};
+    Symbol symbol{ ident,symbolType };
     currentSymbolTable->define(symbol);
     // generate LLVM code
     if (isGlobal) {
@@ -107,22 +109,56 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
-    std::cout << "enter rule [funcDef]!" << "\t";
-    std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [funcDef]!" << "\t";
+    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
+    // return visitChildren(context);
+    BaseType retT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
+    std::string ident = context->IDENT()->getText();
+    // check if the identifier is already defined
+    Symbol *s = currentSymbolTable->lookup(ident);
+    if (s != nullptr && s->type.isFunction) {
+        std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    // add symbol to symbol table
+    VarType symbolType{ retT,false /*not Const*/, true /*is Function*/ };
+    Symbol symbol{ ident, symbolType };
+    currentSymbolTable->define(symbol);
+    // generate LLVM code
+    std::vector<LLVMValue> parameters;
+    if (context->funcFParams()) {
+        parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
+    }
+    LLVMFunction function(ident, mapCactTypeToLLVM(symbolType), parameters);
+    llvmmodule.addFunction(function);
+    LLVMBasicBlock block("entry");
+    function.addBasicBlock(block);
+    currentBlock = &block;
 }
 std::any Analysis::visitFuncType(CactParser::FuncTypeContext *context) {
-    std::cout << "enter rule [funcType]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [funcType]!" << std::endl;
+    // return visitChildren(context);
+    if (context->VOID_KW()) return BaseType::VOID;
+    if (context->bType()) {
+        return std::any_cast<BaseType>(visitBType(context->bType()));
+    }
 }
 std::any Analysis::visitFuncFParams(CactParser::FuncFParamsContext *context) {
-    std::cout << "enter rule [funcFParams]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [funcFParams]!" << std::endl;
+    // return visitChildren(context);
+    std::vector<LLVMValue> params;
+    for (const auto &it : context->funcFParam()) {
+        params.push_back(std::any_cast<LLVMValue>(visitFuncFParam(it)));
+    }
 }
 std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
-    std::cout << "enter rule [funcFParam]!" << "\t";
-    std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [funcFParam]!" << "\t";
+    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
+    // return visitChildren(context);
+    std::string ident = context->IDENT()->getText();
+    BaseType baseT = std::any_cast<BaseType>(visitBType(context->bType()));
+    VarType varT = { baseT, false /*not Const*/, false /*not function*/ };
+    return LLVMValue(ident, mapCactTypeToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
     std::cout << "enter rule [block]!" << std::endl;
