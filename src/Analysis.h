@@ -26,7 +26,7 @@ public:
     LLVMModule llvmmodule;
     LLVMBasicBlock *currentBlock;
 
-
+    int labelCounter = 0;
 
     std::any visitProgram(CactParser::ProgramContext *context) override;
     std::any visitCompUnit(CactParser::CompUnitContext *context) override;
@@ -65,6 +65,9 @@ public:
     std::any visitLOrExp(CactParser::LOrExpContext *context) override;
     std::any visitIntConst(CactParser::IntConstContext *context) override;
     std::any visitErrorNode(tree::ErrorNode *node) override;
+
+
+    std::string newLabel(const std::string &prefix);
 };
 
 # endif

@@ -4,25 +4,29 @@ std::string mapCactTypeToLLVM(const VarType &type) {
     std::string llvmType;
 
     switch (type.baseType) {
-        case BaseType::INT:
-            llvmType = "i32";
-            break;
-        case BaseType::DOUBLE:
-            llvmType = "double";
-            break; 
-        case BaseType::CHAR:
-            llvmType = "i8";
-            break;
-        case BaseType::FLOAT:
-            llvmType = "float";
-            break;
-        default:
-            llvmType = "void";
-            break;
+    case BaseType::INT:
+        llvmType = "i32";
+        break;
+    case BaseType::DOUBLE:
+        llvmType = "double";
+        break;
+    case BaseType::CHAR:
+        llvmType = "i8";
+        break;
+    case BaseType::FLOAT:
+        llvmType = "float";
+        break;
+    default:
+        llvmType = "void";
+        break;
     }
     if (type.isArray()) {
         for (int dim : type.dimSizes) {
-            llvmType = "[" + std::to_string(dim) + " x " + llvmType + "]";
+            if (dim == -1) {
+                llvmType = llvmType + "*";
+            } else {
+                llvmType = "[" + std::to_string(dim) + " x " + llvmType + "]";
+            }
         }
     }
     return llvmType;
@@ -59,7 +63,7 @@ std::string LLVMFunction::toString()const {
     std::stringstream ss;
     ss << "define " << returnType << "" << name << "(";
     for (size_t i = 0; i < parameters.size(); ++i) {
-        ss << parameters[i].type << " " << parameters[i].name;
+        ss << parameters[i].type << " " << "%" << parameters[i].name;
         if (i < parameters.size() - 1) {
             ss << ", ";
         }
@@ -71,7 +75,7 @@ std::string LLVMFunction::toString()const {
     ss << "}\n";
     return ss.str();
 }
-LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant){
+LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant) {
     std::stringstream ss;
     ss << "@" << name << " =";
     if (isConstant) {

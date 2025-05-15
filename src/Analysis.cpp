@@ -133,7 +133,14 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     llvmmodule.addFunction(function);
     LLVMBasicBlock block("entry");
     function.addBasicBlock(block);
+
+    // visit the function body
     currentBlock = &block;
+    isGlobal = false;
+    currentSymbolTable = new SymbolTable(currentSymbolTable);
+    visitBlock(context->block());
+    isGlobal = true;
+    currentSymbolTable = currentSymbolTable->getParent();
 }
 std::any Analysis::visitFuncType(CactParser::FuncTypeContext *context) {
     // std::cout << "enter rule [funcType]!" << std::endl;
@@ -157,20 +164,34 @@ std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
     // return visitChildren(context);
     std::string ident = context->IDENT()->getText();
     BaseType baseT = std::any_cast<BaseType>(visitBType(context->bType()));
-    VarType varT = { baseT, false /*not Const*/, false /*not function*/ };
+    std::vector<int> dimSize;
+    for (int i = 0; i < context->intConst().size(); i++) {
+        if (context->intConst(i) == nullptr) {
+            dimSize.push_back(-1);
+        } else {
+            dimSize.push_back(std::stoi(context->intConst(i)->getText()));
+        }
+    }
+    VarType varT = { baseT, false /*not Const*/, false /*not function*/ , dimSize};
     return LLVMValue(ident, mapCactTypeToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
-    std::cout << "enter rule [block]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [block]!" << std::endl;
+    // return visitChildren(context);
+    for (const auto& it : context->blockItem()) {
+        visitBlockItem(it);
+    }
 }
 std::any Analysis::visitBlockItem(CactParser::BlockItemContext *context) {
-    std::cout << "enter rule [blockItem]!" << std::endl;
+    // std::cout << "enter rule [blockItem]!" << std::endl;
     return visitChildren(context);
 }
 std::any Analysis::visitStmt(CactParser::StmtContext *context) {
-    std::cout << "enter rule [stmt]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [stmt]!" << std::endl;
+    // return visitChildren(context);
+    if (context->lVal()) {  // lva = exp;
+        std::string lval = std::any_cast<std::string> (visitLVal(context->lVal()));
+    }
 }
 std::any Analysis::visitExp(CactParser::ExpContext *context) {
     std::cout << "enter rule [exp]!" << std::endl;
@@ -185,8 +206,19 @@ std::any Analysis::visitCond(CactParser::CondContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
-    std::cout << "enter rule [lVal]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [lVal]!" << std::endl;
+    // return visitChildren(context);
+    std::string ident = context->IDENT()->getText();
+    // check if the identifier is already defined
+    Symbol *s = currentSymbolTable->lookup(ident);
+    if (s == nullptr || s->type.isFunction) {
+        std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (s->type.isArray()) {
+        std::vector<int> dims;
+        // for (auto it : context->exp)
+    }
 }
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     std::cout << "enter rule [number]!" << "\t";
@@ -256,4 +288,9 @@ std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
 std::any Analysis::visitErrorNode(tree::ErrorNode *node) {
     std::cout << "visit error node!" << std::endl;
     return nullptr;
+}
+std::string Analysis::newLabel(const std::string &prefix) {
+    std::stringstream ss;
+    ss << prefix << labelCounter++;
+    return ss.str();
 }
