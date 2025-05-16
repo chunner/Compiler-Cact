@@ -121,7 +121,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         exit(EXIT_FAILURE);
     }
     // add symbol to symbol table
-    VarType symbolType{ retT,false /*not Const*/, true /*is Function*/ };
+    VarType symbolType = VarType(retT, false /*not Const*/, true /*is Function*/, std::vector<int>());
     Symbol symbol{ ident, symbolType };
     currentSymbolTable->define(symbol);
     // generate LLVM code
@@ -131,6 +131,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     }
     LLVMFunction function(ident, mapCactTypeToLLVM(symbolType), parameters);
     llvmmodule.addFunction(function);
+    currentFunction = &function;
     LLVMBasicBlock block("entry");
     function.addBasicBlock(block);
 
@@ -172,13 +173,13 @@ std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
             dimSize.push_back(std::stoi(context->intConst(i)->getText()));
         }
     }
-    VarType varT = { baseT, false /*not Const*/, false /*not function*/ , dimSize};
+    VarType varT = { baseT, false /*not Const*/, false /*not function*/ , dimSize };
     return LLVMValue(ident, mapCactTypeToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
     // std::cout << "enter rule [block]!" << std::endl;
     // return visitChildren(context);
-    for (const auto& it : context->blockItem()) {
+    for (const auto &it : context->blockItem()) {
         visitBlockItem(it);
     }
 }
@@ -191,11 +192,36 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
     // return visitChildren(context);
     if (context->lVal()) {  // lva = exp;
         std::string lval = std::any_cast<std::string> (visitLVal(context->lVal()));
+        std::string rval = std::any_cast<std::string> (visitExp(context->exp()));
+        std::stringstream ss;
+        VarType lvalType = VarType(currentType, false /*not Const*/, false /*not function*/, std::vector<int>());
+        ss << "store " << mapCactTypeToLLVM(lvalType) << " " << rval << ", " << mapCactTypeToLLVM(lvalType) << "* %" << lval;
+        currentBlock->addInstruction(ss.str());
+    } else if (context->block()) { // block
+        LLVMBasicBlock block(newLabel("block"));
+        currentFunction->addBasicBlock(block);
+        LLVMBasicBlock *oldBlock = currentBlock;
+        currentBlock = &block;
+        currentSymbolTable = new SymbolTable(currentSymbolTable);
+        visitBlock(context->block());
+        currentBlock = oldBlock;
+        currentSymbolTable = currentSymbolTable->getParent();
+    } else if (context->IF_KW()) { // if (cond) stmt else stmt
+
+    } else if (context->WHILE_KW()) { // while (cond) stmt
+
+    } else if (context->BREAK_KW()) { // break
+
+    } else if (context->CONTINUE_KW()) { // continue
+
+    } else if (context->RETURN_KW()) { // return exp;
+    } else { // exp?;
     }
 }
 std::any Analysis::visitExp(CactParser::ExpContext *context) {
-    std::cout << "enter rule [exp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [exp]!" << std::endl;
+    // return visitChildren(context);
+    return std::any_cast<std::string> (visitAddExp(context->addExp()));
 }
 std::any Analysis::visitConstExp(CactParser::ConstExpContext *context) {
     std::cout << "enter rule [constExp]!" << std::endl;
@@ -215,9 +241,21 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
+    currentType = s->type.baseType;
     if (s->type.isArray()) {
-        std::vector<int> dims;
-        // for (auto it : context->exp)
+        std::string tmpid = ident;
+        VarType tmpT = s->type;
+        for (int i = 0; i < context->exp().size(); i++) {
+            std::string index = std::any_cast<std::string>(visitExp(context->exp(i)));
+            tmpid += index;
+            std::stringstream ss;
+            ss << "%" << ident << "_ptr" << " = " << "getelementptr inbounds " << mapCactTypeToLLVM(tmpT) << ", " << mapCactTypeToLLVM(tmpT) << "* %" << tmpid << ", " << "i32 0" << ", i32 " << index;
+            currentBlock->addInstruction(ss.str());
+            tmpT = VarType(tmpT.baseType, tmpT.isConst, tmpT.isFunction, std::vector<int>(tmpT.dimSizes.begin() + 1, tmpT.dimSizes.end()));
+        }
+        return tmpid + "_ptr";
+    } else {
+        return ident;
     }
 }
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
@@ -250,8 +288,25 @@ std::any Analysis::visitMulOp(CactParser::MulOpContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
-    std::cout << "enter rule [addExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [addExp]!" << std::endl;
+    // return visitChildren(context);
+    std::stringstream ss;
+    if (context->addOp().size() == 0) {
+        return visitMulExp(context->mulExp(0));
+    }
+    std::string res;
+    for (int i = 0; i < context->mulExp().size(); i++) {
+        std::string mulExp = std::any_cast<std::string>(visitMulExp(context->mulExp(i)));
+        if (i == 0) {
+            res = mulExp;
+        } else {
+            std::stringstream ss;
+            ss << "%" << res << " = " << "add" << mapCactTypeToLLVM(VarType(currentType, false, false)) << " " << res << ", " << mulExp;
+
+        }
+    }
+
+
 }
 std::any Analysis::visitAddOp(CactParser::AddOpContext *context) {
     std::cout << "enter rule [addOp]!" << std::endl;

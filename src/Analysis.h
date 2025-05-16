@@ -24,6 +24,7 @@ public:
     BaseType currentType;
 
     LLVMModule llvmmodule;
+    LLVMFunction *currentFunction;
     LLVMBasicBlock *currentBlock;
 
     int labelCounter = 0;

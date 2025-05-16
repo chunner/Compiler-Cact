@@ -21,7 +21,8 @@ std::string mapCactTypeToLLVM(const VarType &type) {
         break;
     }
     if (type.isArray()) {
-        for (int dim : type.dimSizes) {
+        for (int i = type.dimSizes.size() - 1; i >= 0; i--) {
+            int dim = type.dimSizes[i];
             if (dim == -1) {
                 llvmType = llvmType + "*";
             } else {
@@ -75,6 +76,12 @@ std::string LLVMFunction::toString()const {
     ss << "}\n";
     return ss.str();
 }
+
+std::string LLVMFunction::newTmp(std::string prefix) {
+    return prefix + std::to_string(tmpCounter++);
+}
+
+
 LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant) {
     std::stringstream ss;
     ss << "@" << name << " =";

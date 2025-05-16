@@ -22,6 +22,12 @@ struct VarType {
     bool isArray() const {
         return !dimSizes.empty();
     }
+    VarType(BaseType baseT, bool isConst, bool isFunction, std::vector<int> dimSizes)
+        : baseType(baseT), isConst(isConst), isFunction(isFunction), dimSizes(std::move(dimSizes)) {
+    };
+    VarType(BaseType baseT, bool isConst, bool isFunction)
+        : baseType(baseT), isConst(isConst), isFunction(isFunction) {
+    };
 };
 
 enum class SymbolKind {
