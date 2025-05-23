@@ -1,6 +1,6 @@
 #include "IRGenerator.h"
 
-std::string mapCactTypeToLLVM(const VarType &type) {
+std::string CactToLLVM(const VarType &type) {
     std::string llvmType;
 
     switch (type.baseType) {

@@ -28,6 +28,9 @@ struct VarType {
     VarType(BaseType baseT, bool isConst, bool isFunction)
         : baseType(baseT), isConst(isConst), isFunction(isFunction) {
     };
+    VarType(BaseType baseT)
+        : baseType(baseT) {
+    };
 };
 
 enum class SymbolKind {
@@ -48,12 +51,13 @@ public:
     ~SymbolTable();
 
     void define(const Symbol &symbol);
-    Symbol *lookup(const std::string &name);
-    bool lookupInCurrentScope(const std::string &name);
+    Symbol *lookup(const std::string &name, bool isFunction = false);
+    bool lookupInCurrentScope(const std::string &name, bool isFunction = false);
     SymbolTable *getParent();
 
 private:
-    std::unordered_map<std::string, Symbol> table;
+    std::unordered_map<std::string, Symbol> var_table;
+    std::unordered_map<std::string, Symbol> func_table;
     SymbolTable *parent;
 };
 

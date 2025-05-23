@@ -9,25 +9,39 @@ SymbolTable::~SymbolTable() {
 
 void SymbolTable::define(const Symbol &symbol) {
     // Check if the symbol already exists in current scope
-    if (lookupInCurrentScope(symbol.name)) {
-        std::cerr << "Error: Symbol '" << symbol.name << "' already defined in current scope." << std::endl;
+
+}
+
+Symbol *SymbolTable::lookup(const std::string &name, bool isFunction) {
+    if (isFunction) {
+        if (func_table.find(name) != func_table.end()) {
+            return &func_table[name];
+        } else {
+            if (parent) {
+                return parent->lookup(name, isFunction);
+            } else {
+                return nullptr;
+            }
+        }
     } else {
-        table[symbol.name] = symbol;
+        if (var_table.find(name) != var_table.end()) {
+            return &var_table[name];
+        } else {
+            if (parent) {
+                return parent->lookup(name, isFunction);
+            } else {
+                return nullptr;
+            }
+        }
     }
 }
 
-Symbol *SymbolTable::lookup(const std::string &name) {
-    // Check current scope
-    if (lookupInCurrentScope(name)) {
-        return &table[name];
-    } else if(parent != nullptr){
-        return parent->lookup(name);
+bool SymbolTable::lookupInCurrentScope(const std::string &name,bool isFunction) {
+    if (isFunction) {
+        return func_table.find(name) != func_table.end();
+    } else {
+        return var_table.find(name) != var_table.end();
     }
-    return nullptr;
-}
-
-bool SymbolTable::lookupInCurrentScope(const std::string &name) {
-    return table.find(name) != table.end();
 }
 
 SymbolTable *SymbolTable::getParent() {

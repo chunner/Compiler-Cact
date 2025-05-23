@@ -28,6 +28,7 @@ public:
     LLVMBasicBlock *currentBlock;
 
     int labelCounter = 0;
+    int ssaCounter = 0;
 
     std::any visitProgram(CactParser::ProgramContext *context) override;
     std::any visitCompUnit(CactParser::CompUnitContext *context) override;
@@ -69,6 +70,7 @@ public:
 
 
     std::string newLabel(const std::string &prefix);
+    std::string newSSA(const std::string &prefix);
 };
 
 # endif

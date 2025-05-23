@@ -36,8 +36,8 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
     // check if the identifier is already defined
     std::string ident = context->IDENT()->getText();
-    Symbol *s = currentSymbolTable->lookup(ident);
-    if (s != nullptr && !s->type.isFunction) {
+    bool defined = currentSymbolTable->lookupInCurrentScope(ident);
+    if (defined) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
         return nullptr;
@@ -52,14 +52,14 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     currentSymbolTable->define(symbol);
     // generate LLVM code
     if (isGlobal) {
-        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), true /* is Const*/);
+        LLVMGlobalVar globalVar(ident, CactToLLVM(symbolType), context->constInitVal()->getText(), true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << mapCactTypeToLLVM(symbolType);
+        ss << "%" << ident << " = alloca " << CactToLLVM(symbolType);
         currentBlock->addInstruction(ss.str());
         ss.str("");
-        ss << "store " << mapCactTypeToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << mapCactTypeToLLVM(symbolType) << "* %" << ident;
+        ss << "store " << CactToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << CactToLLVM(symbolType) << "* %" << ident;
         currentBlock->addInstruction(ss.str());
     }
     return visitChildren(context);
@@ -81,8 +81,8 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    Symbol *s = currentSymbolTable->lookup(ident);
-    if (s != nullptr && !s->type.isFunction) {
+    bool defined = currentSymbolTable->lookupInCurrentScope(ident);
+    if (defined) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -96,14 +96,14 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     currentSymbolTable->define(symbol);
     // generate LLVM code
     if (isGlobal) {
-        LLVMGlobalVar globalVar(ident, mapCactTypeToLLVM(symbolType), context->constInitVal()->getText(), false /* is Const*/);
+        LLVMGlobalVar globalVar(ident, CactToLLVM(symbolType), context->constInitVal()->getText(), false /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << mapCactTypeToLLVM(symbolType);
+        ss << "%" << ident << " = alloca " << CactToLLVM(symbolType);
         currentBlock->addInstruction(ss.str());
         ss.str("");
-        ss << "store " << mapCactTypeToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << mapCactTypeToLLVM(symbolType) << "* %" << ident;
+        ss << "store " << CactToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << CactToLLVM(symbolType) << "* %" << ident;
         currentBlock->addInstruction(ss.str());
     }
     return visitChildren(context);
@@ -115,8 +115,8 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     BaseType retT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    Symbol *s = currentSymbolTable->lookup(ident);
-    if (s != nullptr && s->type.isFunction) {
+    bool defined = currentSymbolTable->lookupInCurrentScope(ident, true /*is function*/);
+    if (defined) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -129,7 +129,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     if (context->funcFParams()) {
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
     }
-    LLVMFunction function(ident, mapCactTypeToLLVM(symbolType), parameters);
+    LLVMFunction function(ident, CactToLLVM(symbolType), parameters);
     llvmmodule.addFunction(function);
     currentFunction = &function;
     LLVMBasicBlock block("entry");
@@ -174,7 +174,7 @@ std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
         }
     }
     VarType varT = { baseT, false /*not Const*/, false /*not function*/ , dimSize };
-    return LLVMValue(ident, mapCactTypeToLLVM(varT));
+    return LLVMValue(ident, CactToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
     // std::cout << "enter rule [block]!" << std::endl;
@@ -195,7 +195,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         std::string rval = std::any_cast<std::string> (visitExp(context->exp()));
         std::stringstream ss;
         VarType lvalType = VarType(currentType, false /*not Const*/, false /*not function*/, std::vector<int>());
-        ss << "store " << mapCactTypeToLLVM(lvalType) << " " << rval << ", " << mapCactTypeToLLVM(lvalType) << "* %" << lval;
+        ss << "store " << CactToLLVM(lvalType) << " " << rval << ", " << CactToLLVM(lvalType) << "* %" << lval;
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
         LLVMBasicBlock block(newLabel("block"));
@@ -237,7 +237,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
     Symbol *s = currentSymbolTable->lookup(ident);
-    if (s == nullptr || s->type.isFunction) {
+    if (s == nullptr) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -249,7 +249,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
             std::string index = std::any_cast<std::string>(visitExp(context->exp(i)));
             tmpid += index;
             std::stringstream ss;
-            ss << "%" << ident << "_ptr" << " = " << "getelementptr inbounds " << mapCactTypeToLLVM(tmpT) << ", " << mapCactTypeToLLVM(tmpT) << "* %" << tmpid << ", " << "i32 0" << ", i32 " << index;
+            ss << "%" << ident << "_ptr" << " = " << "getelementptr inbounds " << CactToLLVM(tmpT) << ", " << CactToLLVM(tmpT) << "* %" << tmpid << ", " << "i32 0" << ", i32 " << index;
             currentBlock->addInstruction(ss.str());
             tmpT = VarType(tmpT.baseType, tmpT.isConst, tmpT.isFunction, std::vector<int>(tmpT.dimSizes.begin() + 1, tmpT.dimSizes.end()));
         }
@@ -272,16 +272,67 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
-    std::cout << "enter rule [unaryExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [unaryExp]!" << std::endl;
+    // return visitChildren(context);
+    if (context->primaryExp()) {
+        return std::any_cast<std::string>(visitPrimaryExp(context->primaryExp()));
+    } else if (context->unaryOp() && context->unaryExp()) {
+        if (context->unaryOp()->PLUS()) {
+            return std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+        } else if (context->unaryOp()->MINUS()) {
+            std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+            std::string neg = newSSA("neg");
+            std::stringstream ss;
+            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentType)) << " 0, " << right;
+            currentBlock->addInstruction(ss.str());
+            return neg;
+        } else if (context->unaryOp()->NOT()) {
+            std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+            std::string notssa = newSSA("not");
+            std::stringstream ss;
+            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentType)) << " " << right << ", 0";
+            currentBlock->addInstruction(ss.str());
+            return notssa;
+        } else {
+            std::cerr << "Error: Unknown unary operator!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    } else if (context->IDENT()) {
+        std::string ident = context->IDENT()->getText();
+        // check if the identifier is already defined
+        Symbol *s = currentSymbolTable->lookup(ident, true /*is function*/);
+        if (s == nullptr) {
+            std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        // TODO : call a function
+
+    } 
 }
 std::any Analysis::visitUnaryOp(CactParser::UnaryOpContext *context) {
-    std::cout << "enter rule [unaryOp]!" << std::endl;
-    return visitChildren(context);
+    return;
 }
 std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
-    std::cout << "enter rule [mulExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [mulExp]!" << std::endl;
+    // return visitChildren(context);
+    std::string left = std::any_cast<std::string>(visitUnaryExp(context->unaryExp(0)));
+    std::stringstream ss;
+    std::string mul = left;
+    for (int i = 1; i < context->unaryExp().size(); i++) {
+        std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp(i)));
+        mul = newSSA("mul");
+        if (context->mulOp(i - 1)->MUL()) {
+            ss << "%" << mul << " = mul " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+        } else if (context->mulOp(i - 1)->DIV()) {
+            ss << "%" << mul << " = sdiv " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+        } else if (context->mulOp(i - 1)->MOD()) {
+            ss << "%" << mul << " = srem " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+        }
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
+        left = mul;
+    }
+    return mul;
 }
 std::any Analysis::visitMulOp(CactParser::MulOpContext *context) {
     std::cout << "enter rule [mulOp]!" << std::endl;
@@ -291,22 +342,21 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
     // std::cout << "enter rule [addExp]!" << std::endl;
     // return visitChildren(context);
     std::stringstream ss;
-    if (context->addOp().size() == 0) {
-        return visitMulExp(context->mulExp(0));
-    }
-    std::string res;
-    for (int i = 0; i < context->mulExp().size(); i++) {
-        std::string mulExp = std::any_cast<std::string>(visitMulExp(context->mulExp(i)));
-        if (i == 0) {
-            res = mulExp;
-        } else {
-            std::stringstream ss;
-            ss << "%" << res << " = " << "add" << mapCactTypeToLLVM(VarType(currentType, false, false)) << " " << res << ", " << mulExp;
-
+    std::string left = std::any_cast<std::string>(visitMulExp(context->mulExp(0)));
+    std::string sum = left;
+    for (int i = 1; i < context->mulExp().size(); i++) {
+        std::string right = std::any_cast<std::string>(visitMulExp(context->mulExp(i)));
+        sum = newSSA("sum");
+        if (context->addOp(i - 1)->PLUS()) {
+            ss << "%" << sum << " = add " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+        } else if (context->addOp(i - 1)->MINUS()) {
+            ss << "%" << sum << " = sub " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
         }
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
+        left = sum;
     }
-
-
+    return sum;
 }
 std::any Analysis::visitAddOp(CactParser::AddOpContext *context) {
     std::cout << "enter rule [addOp]!" << std::endl;
@@ -345,7 +395,9 @@ std::any Analysis::visitErrorNode(tree::ErrorNode *node) {
     return nullptr;
 }
 std::string Analysis::newLabel(const std::string &prefix) {
-    std::stringstream ss;
-    ss << prefix << labelCounter++;
-    return ss.str();
+    return prefix + std::to_string(labelCounter++);
+}
+
+std::string Analysis::newSSA(const std::string &prefix) {
+    return prefix + std::to_string(ssaCounter++);
 }

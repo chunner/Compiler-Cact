@@ -7,7 +7,7 @@
 #include <variant>
 #include <SymbolTable.h>
 
-std::string mapCactTypeToLLVM(const VarType &type);
+std::string CactToLLVM(const VarType &type);
 
 struct LLVMValue {
     std::string name;
