@@ -29,6 +29,8 @@ public:
 
     int labelCounter = 0;
     int ssaCounter = 0;
+    std::string curEndLabel;
+    std::string curCondLabel;
 
     std::any visitProgram(CactParser::ProgramContext *context) override;
     std::any visitCompUnit(CactParser::CompUnitContext *context) override;

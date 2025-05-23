@@ -207,15 +207,84 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentBlock = oldBlock;
         currentSymbolTable = currentSymbolTable->getParent();
     } else if (context->IF_KW()) { // if (cond) stmt else stmt
+        std::string thenLabel = newLabel("then");
+        std::string elseLabel = context->ELSE_KW() ? newLabel("else") : "";
+        std::string endLabel = newLabel("ifend");
+        std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
 
+        std::stringstream ss;
+        if (context->ELSE_KW()) {
+            ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << elseLabel;
+        } else {
+            ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << endLabel;
+        }
+        currentBlock->addInstruction(ss.str());
+        // then
+        LLVMBasicBlock* thenBlock = new LLVMBasicBlock(thenLabel);
+        currentFunction->addBasicBlock(*thenBlock);
+        currentBlock = thenBlock;
+        visitStmt(context->stmt(0));
+        currentBlock->addInstruction("br label %" + endLabel);
+
+        // else
+        if (context->ELSE_KW()) {
+            LLVMBasicBlock *elseBlock = new LLVMBasicBlock(elseLabel);
+            currentFunction->addBasicBlock(*elseBlock);
+            currentBlock = elseBlock;
+            visitStmt(context->stmt(1));
+            currentBlock->addInstruction("br label %" + endLabel);
+        }
+
+        // end
+        LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
+        currentFunction->addBasicBlock(*endBlock);
+        currentBlock = endBlock;
     } else if (context->WHILE_KW()) { // while (cond) stmt
+        std::string condLabel = newLabel("while_cond");
+        std::string bodyLabel = newLabel("while_body");
+        std::string endLabel = newLabel("while_end");
 
+        curCondLabel = condLabel;
+        curEndLabel = endLabel;
+        // cond
+        LLVMBasicBlock *condBlock = new LLVMBasicBlock(condLabel);
+        currentFunction->addBasicBlock(*condBlock);
+        currentBlock = condBlock;
+        std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
+        std::stringstream ss;
+        ss << "br i1 " << cond << ", label %" << bodyLabel << ", label %" << endLabel;
+        currentBlock->addInstruction(ss.str());
+        // body
+        LLVMBasicBlock *bodyBlock = new LLVMBasicBlock(bodyLabel);
+        currentFunction->addBasicBlock(*bodyBlock);
+        currentBlock = bodyBlock;
+        visitStmt(context->stmt(0));
+        currentBlock->addInstruction("br label %" + condLabel);
+        // end
+        LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
+        currentFunction->addBasicBlock(*endBlock);
+        currentBlock = endBlock;
     } else if (context->BREAK_KW()) { // break
-
+        if (curEndLabel.empty()) {
+            std::cerr << "Error: break statement not in loop!" << std::endl;
+            exit(EXIT_FAILURE);
+        } else {
+            currentBlock->addInstruction("br label %" + curEndLabel);
+        }
     } else if (context->CONTINUE_KW()) { // continue
-
+        if (curCondLabel.empty()) {
+            std::cerr << "Error: continue statement not in loop!" << std::endl;
+            exit(EXIT_FAILURE);
+        } else {
+            currentBlock->addInstruction("br label %" + curCondLabel);
+        }
     } else if (context->RETURN_KW()) { // return exp;
+        std::string ret = std::any_cast<std::string>(visitExp(context->exp()));
+        currentBlock->addInstruction("ret " + currentFunction->returnType + " " + ret);
     } else { // exp?;
+        if (context->exp()) {
+            visit(context->exp());
+        }
     }
 }
 std::any Analysis::visitExp(CactParser::ExpContext *context) {
@@ -264,9 +333,9 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     // return visitChildren(context);
     if (context->intConst()) {
         return std::any_cast<std::string>(visitIntConst(context->intConst()));
-    }else if (context->FloatConst()) {
+    } else if (context->FloatConst()) {
         std::string floatConst = context->FloatConst()->getText();
-        if (!floatConst.empty() &&(floatConst.back() == 'f' || floatConst.back() == 'F')) {
+        if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
             floatConst.pop_back();
         }
         return floatConst;
@@ -285,13 +354,13 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
             char esc = ch[2];
             int val = 0;
             switch (esc) {
-                case 'n': val = '\n'; break;
-                case 't': val = '\t'; break;
-                case 'r': val = '\r'; break;
-                case 'b': val = '\b'; break;
-                case 'f': val = '\f'; break;
-                case '\\': val = '\\'; break;
-                default: std::cerr << "Error: Unknown escape character!" << std::endl; exit(EXIT_FAILURE);
+            case 'n': val = '\n'; break;
+            case 't': val = '\t'; break;
+            case 'r': val = '\r'; break;
+            case 'b': val = '\b'; break;
+            case 'f': val = '\f'; break;
+            case '\\': val = '\\'; break;
+            default: std::cerr << "Error: Unknown escape character!" << std::endl; exit(EXIT_FAILURE);
             }
             return std::to_string(val);
         } else {
