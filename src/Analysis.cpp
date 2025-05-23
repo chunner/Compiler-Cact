@@ -259,17 +259,73 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
     }
 }
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
-    std::cout << "enter rule [number]!" << "\t";
-    std::cout << "the number is: " << context->getText().c_str() << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [number]!" << "\t";
+    // std::cout << "the number is: " << context->getText().c_str() << std::endl;
+    // return visitChildren(context);
+    if (context->intConst()) {
+        return std::any_cast<std::string>(visitIntConst(context->intConst()));
+    }else if (context->FloatConst()) {
+        std::string floatConst = context->FloatConst()->getText();
+        if (!floatConst.empty() &&(floatConst.back() == 'f' || floatConst.back() == 'F')) {
+            floatConst.pop_back();
+        }
+        return floatConst;
+    } else if (context->EXPONENT()) {
+        std::string exponent = context->EXPONENT()->getText();
+        if (!exponent.empty() && (exponent.back() == 'f' || exponent.back() == 'F')) {
+            exponent.pop_back();
+        }
+        return exponent;
+    } else if (context->CharConst()) {
+        std::string ch = context->CharConst()->getText();
+        if (ch.size() == 3 && ch.front() == '\'' && ch.back() == '\'') {
+            int val = static_cast<int>(ch[1]);
+            return std::to_string(val);
+        } else if (ch.size() == 4 && ch[1] == '\\') {
+            char esc = ch[2];
+            int val = 0;
+            switch (esc) {
+                case 'n': val = '\n'; break;
+                case 't': val = '\t'; break;
+                case 'r': val = '\r'; break;
+                case 'b': val = '\b'; break;
+                case 'f': val = '\f'; break;
+                case '\\': val = '\\'; break;
+                default: std::cerr << "Error: Unknown escape character!" << std::endl; exit(EXIT_FAILURE);
+            }
+            return std::to_string(val);
+        } else {
+            std::cerr << "Error: Invalid character constant!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        std::cerr << "Error: Unknown number!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
-    std::cout << "enter rule [funcRParams]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [funcRParams]!" << std::endl;
+    // return visitChildren(context);
+    std::stringstream ss;
+    for (int i = 0; i < context->exp().size(); i++) {
+        std::string param = std::any_cast<std::string>(visitExp(context->exp(i)));
+        ss << param;
+        if (i != context->exp().size() - 1) {
+            ss << ", ";
+        }
+    }
+    return ss.str();
 }
 std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
-    std::cout << "enter rule [primaryExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [primaryExp]!" << std::endl;
+    // return visitChildren(context);
+    if (context->exp()) {
+        return std::any_cast<std::string>(visitExp(context->exp()));
+    } else if (context->lVal()) {
+        return std::any_cast<std::string>(visitLVal(context->lVal()));
+    } else if (context->number()) {
+        return std::any_cast<std::string>(visitNumber(context->number()));
+    }
 }
 std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
     // std::cout << "enter rule [unaryExp]!" << std::endl;
@@ -306,8 +362,20 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             exit(EXIT_FAILURE);
         }
         // TODO : call a function
-
-    } 
+        std::string funcret = newSSA("ret");
+        std::stringstream ss;
+        ss << "%" << funcret << " = call " << CactToLLVM(VarType(currentType)) << " @" << ident << "(";
+        if (context->funcRParams()) {
+            std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
+            ss << params;
+        }
+        ss << ")";
+        currentBlock->addInstruction(ss.str());
+        return funcret;
+    } else {
+        std::cerr << "Error: Unknown unary expression!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 std::any Analysis::visitUnaryOp(CactParser::UnaryOpContext *context) {
     return;
@@ -388,7 +456,21 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
     // std::cout << "enter rule [intConst]!" << std::endl;
-    return visitChildren(context);
+    // return visitChildren(context);
+    if (context->DECIMAL_CONST()) {
+        return context->DECIMAL_CONST()->getText();
+    } else if (context->OCTAL_CONST()) {
+        std::string octal = context->OCTAL_CONST()->getText();
+        int decimal = std::stoi(octal, nullptr, 8);
+        return std::to_string(decimal);
+    } else if (context->HEXADECIMAL_CONST()) {
+        std::string hex = context->HEXADECIMAL_CONST()->getText();
+        int decimal = std::stoi(hex, nullptr, 16);
+        return std::to_string(decimal);
+    } else {
+        std::cerr << "Error: Unknown integer constant!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 std::any Analysis::visitErrorNode(tree::ErrorNode *node) {
     std::cout << "visit error node!" << std::endl;
