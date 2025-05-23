@@ -220,7 +220,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         }
         currentBlock->addInstruction(ss.str());
         // then
-        LLVMBasicBlock* thenBlock = new LLVMBasicBlock(thenLabel);
+        LLVMBasicBlock *thenBlock = new LLVMBasicBlock(thenLabel);
         currentFunction->addBasicBlock(*thenBlock);
         currentBlock = thenBlock;
         visitStmt(context->stmt(0));
@@ -297,8 +297,10 @@ std::any Analysis::visitConstExp(CactParser::ConstExpContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitCond(CactParser::CondContext *context) {
-    std::cout << "enter rule [cond]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [cond]!" << std::endl;
+    // return visitChildren(context);
+    currentType = BaseType::BOOL;
+    return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
 }
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
     // std::cout << "enter rule [lVal]!" << std::endl;
@@ -500,28 +502,79 @@ std::any Analysis::visitAddOp(CactParser::AddOpContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
-    std::cout << "enter rule [relExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [relExp]!" << std::endl;
+    // return visitChildren(context);
+    std::string left = std::any_cast<std::string>(visitAddExp(context->addExp(0)));
+    std::string rel = left;
+    if (context->addExp().size() == 1) {
+        return rel;
+    } else if (context->addExp().size() == 2) {
+        std::string right = std::any_cast<std::string>(visitAddExp(context->addExp(1)));
+        rel = newSSA("rel");
+        if (context->relOp()->LT()) {
+            currentBlock->addInstruction("%" + rel + " = icmp slt " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        } else if (context->relOp()->GT()) {
+            currentBlock->addInstruction("%" + rel + " = icmp sgt " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        } else if (context->relOp()->LE()) {
+            currentBlock->addInstruction("%" + rel + " = icmp sle " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        } else if (context->relOp()->GE()) {
+            currentBlock->addInstruction("%" + rel + " = icmp sge " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        }
+        return rel;
+    } else {
+        std::cerr << "Error: Unknown relExp!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 std::any Analysis::visitRelOp(CactParser::RelOpContext *context) {
     std::cout << "enter rule [relOp]!" << std::endl;
     return visitChildren(context);
 }
 std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
-    std::cout << "enter rule [eqExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [eqExp]!" << std::endl;
+    // return visitChildren(context);
+    std::string left = std::any_cast<std::string>(visitRelExp(context->relExp(0)));
+    std::string eq = left;
+    if (context->relExp().size() == 1) {
+        return eq;
+    } else if (context->relExp().size() == 2) {
+        std::string right = std::any_cast<std::string>(visitRelExp(context->relExp(1)));
+        eq = newSSA("eq");
+        currentBlock->addInstruction("%" + eq + " = icmp eq " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        return eq;
+    } else {
+        std::cerr << "Error: Unknown eqExp!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
 }
 std::any Analysis::visitEqOp(CactParser::EqOpContext *context) {
     std::cout << "enter rule [eqOp]!" << std::endl;
     return visitChildren(context);
 }
 std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
-    std::cout << "enter rule [lAndExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [lAndExp]!" << std::endl;
+    // return visitChildren(context);
+    std::string left = std::any_cast<std::string>(visitEqExp(context->eqExp(0)));
+    std::string land = left;
+    for (int i = 1; i < context->eqExp().size(); i++) {
+        std::string right = std::any_cast<std::string>(visitEqExp(context->eqExp(i)));
+        land = newSSA("land");
+        currentBlock->addInstruction("%" + land + " = and i1 " + left + ", " + right);
+    }
+    return land;
 }
 std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
-    std::cout << "enter rule [lOrExp]!" << std::endl;
-    return visitChildren(context);
+    // std::cout << "enter rule [lOrExp]!" << std::endl;
+    // return visitChildren(context);
+    std::string left = std::any_cast<std::string>(visitLAndExp(context->lAndExp(0)));
+    std::string lor = left;
+    for (int i = 1; i < context->lAndExp().size(); i++) {
+        std::string right = std::any_cast<std::string>(visitLAndExp(context->lAndExp(i)));
+        lor = newSSA("lor");
+        currentBlock->addInstruction("%" + lor + " = or i1 " + left + ", " + right);
+    }
+    return lor;
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
     // std::cout << "enter rule [intConst]!" << std::endl;

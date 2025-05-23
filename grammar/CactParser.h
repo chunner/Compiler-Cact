@@ -583,8 +583,7 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<AddExpContext *> addExp();
     AddExpContext* addExp(size_t i);
-    std::vector<RelOpContext *> relOp();
-    RelOpContext* relOp(size_t i);
+    RelOpContext *relOp();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -615,8 +614,7 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<RelExpContext *> relExp();
     RelExpContext* relExp(size_t i);
-    std::vector<EqOpContext *> eqOp();
-    EqOpContext* eqOp(size_t i);
+    EqOpContext *eqOp();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

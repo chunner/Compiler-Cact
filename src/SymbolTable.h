@@ -11,7 +11,8 @@ enum class BaseType {
     DOUBLE,
     CHAR,
     FLOAT,
-    VOID    // for function
+    VOID,    // for function
+    BOOL
 };
 struct VarType {
     BaseType baseType;

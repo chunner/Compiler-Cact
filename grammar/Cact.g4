@@ -59,10 +59,10 @@ mulOp       : MUL | DIV | MOD;
 addExp      : mulExp (addOp mulExp)*;   
 addOp       : PLUS  | MINUS;
 
-relExp      : addExp (relOp addExp)*;
+relExp      : addExp (relOp addExp)?;
 relOp       : GT | LT | GE | LE;
 
-eqExp       : relExp (eqOp relExp)*;
+eqExp       : relExp (eqOp relExp)?;
 eqOp        : EQ | NEQ;
 
 lAndExp     : eqExp (AND eqExp)*;
