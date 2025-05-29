@@ -20,7 +20,8 @@ class LLVMBasicBlock {
 public:
     std::string label;
     std::vector<std::string> instructions;
-    LLVMBasicBlock(std::string label);
+    LLVMBasicBlock(std::string label) : label(std::move(label)) {
+    };
     void addInstruction(const std::string &instruction);
     std::string toString() const;
 };

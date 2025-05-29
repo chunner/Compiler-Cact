@@ -21,7 +21,7 @@ public:
     bool isGlobal;
 
     // bool isConstant;
-    BaseType currentType;
+    BaseType currentBType;
 
     LLVMModule llvmmodule;
     LLVMFunction *currentFunction;
@@ -49,7 +49,6 @@ public:
     std::any visitBlockItem(CactParser::BlockItemContext *context) override;
     std::any visitStmt(CactParser::StmtContext *context) override;
     std::any visitExp(CactParser::ExpContext *context) override;
-    std::any visitConstExp(CactParser::ConstExpContext *context) override;
     std::any visitCond(CactParser::CondContext *context) override;
     std::any visitLVal(CactParser::LValContext *context) override;
     std::any visitNumber(CactParser::NumberContext *context) override;

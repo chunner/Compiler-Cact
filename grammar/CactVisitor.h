@@ -56,8 +56,6 @@ public:
 
     virtual std::any visitExp(CactParser::ExpContext *context) = 0;
 
-    virtual std::any visitConstExp(CactParser::ConstExpContext *context) = 0;
-
     virtual std::any visitCond(CactParser::CondContext *context) = 0;
 
     virtual std::any visitLVal(CactParser::LValContext *context) = 0;

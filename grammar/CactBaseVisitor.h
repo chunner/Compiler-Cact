@@ -86,10 +86,6 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitConstExp(CactParser::ConstExpContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitCond(CactParser::CondContext *ctx) override {
     return visitChildren(ctx);
   }

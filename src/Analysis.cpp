@@ -1,23 +1,18 @@
 #include <Analysis.h>
 std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
-    //std::cout << "enter rule [Program]!" << std::endl;
-    // return visitChildren(context);
     return visitCompUnit(context->compUnit());
 }
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
-    //std::cout << "enter rule [compUnit]!" << std::endl;
     currentSymbolTable = new SymbolTable(nullptr);
     isGlobal = true;
     return visitChildren(context);
 }
 std::any Analysis::visitDecl(CactParser::DeclContext *context) {
-    //std::cout << "enter rule [decl]!" << std::endl;
     return visitChildren(context);
 }
 std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
-    // std::cout << "enter rule [constDecl]!" << std::endl;
-    currentType = std::any_cast<BaseType>(visitBType(context->bType()));
-    for (auto it : context->constDef()) {
+    currentBType = std::any_cast<BaseType>(visitBType(context->bType()));
+    for (const auto &it : context->constDef()) {
         visitConstDef(it);
     }
 }
@@ -28,49 +23,65 @@ std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     if (context->DOUBLE_KW()) return BaseType::DOUBLE;
     if (context->CHAR_KW()) return BaseType::CHAR;
     if (context->FLOAT_KW()) return BaseType::FLOAT;
-    std::cerr << "Error: Unknown type!" << std::endl;
+    std::cerr << "Error (visitBType): Unknown type!" << std::endl;
     exit(EXIT_FAILURE);
 }
 std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
-    // std::cout << "enter rule [constDef]!" << "\t";
-    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
-    // check if the identifier is already defined
     std::string ident = context->IDENT()->getText();
     bool defined = currentSymbolTable->lookupInCurrentScope(ident);
-    if (defined) {
+    if (defined) { // check if the identifier is already defined
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
-        return nullptr;
     }
     // add symbol to symbol table
     std::vector<int> dimSize;
-    for (auto it : context->intConst()) {
-        dimSize.push_back(std::stoi(it->getText()));
+    for (const auto &it : context->intConst()) {
+        dimSize.push_back(std::stoi(std::any_cast<std::string> (visitIntConst(it))));
     }
-    VarType symbolType{ currentType,true /*is const*/,false /* not function*/, dimSize };
-    Symbol symbol{ ident,symbolType };
-    currentSymbolTable->define(symbol);
+    if (!dimSize.empty() && currentBType != BaseType::INT && currentBType != BaseType::FLOAT && currentBType != BaseType::CHAR) {
+        std::cerr << "Error: array must be of type INT, FLOAT or CHAR!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    VarType currentT = VarType(currentBType, true /*is Const*/, false /*not function*/, dimSize);
+    currentSymbolTable->define(Symbol(ident, currentT));
     // generate LLVM code
     if (isGlobal) {
-        LLVMGlobalVar globalVar(ident, CactToLLVM(symbolType), context->constInitVal()->getText(), true /* is Const*/);
+        std::string initval = std::any_cast<std::string> (visitConstInitVal(context->constInitVal()));
+        LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), initval, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << CactToLLVM(symbolType);
+        ss << "%" << ident << " = alloca " << CactToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
-        ss << "store " << CactToLLVM(symbolType) << " " << context->constInitVal()->getText() << ", " << CactToLLVM(symbolType) << "* %" << ident;
+        ss << "store " << CactToLLVM(currentT) << " " << context->constInitVal()->getText() << ", " << CactToLLVM(currentT) << "* %" << ident;
         currentBlock->addInstruction(ss.str());
     }
     return visitChildren(context);
 }
+// return the LLVM IR for the constant initialization value
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
-    std::cout << "enter rule [constInitVal]!" << std::endl;
-    return visitChildren(context);
+    if (context->number()) {
+        return visitNumber(context->number());
+    } else { // {{1, 2}, {2, 3}}
+        std::vector<std::string> initVals;
+        for (const auto &it : context->constInitVal()) {
+            initVals.push_back(std::any_cast<std::string>(visitConstInitVal(it)));
+        }
+        if (initVals.empty()) {
+            return std::string("zeroinitializer");
+        }
+        std::stringstream ss;
+        ss << "[";
+        for (size_t i = 0; i < initVals.size(); ++i) {
+            
+
+        }
+    }
 }
 std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
     //std::cout << "enter rule [varDecl]!" << std::endl;
-    currentType = std::any_cast<BaseType>(visitBType(context->bType()));
+    currentBType = std::any_cast<BaseType>(visitBType(context->bType()));
     for (auto it : context->varDef()) {
         visitVarDef(it);
     }
@@ -91,7 +102,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     for (auto it : context->intConst()) {
         dimSize.push_back(std::stoi(it->getText()));
     }
-    VarType symbolType{ currentType,false /*not Const*/,false /* not function*/, dimSize };
+    VarType symbolType{ currentBType,false /*not Const*/,false /* not function*/, dimSize };
     Symbol symbol{ ident,symbolType };
     currentSymbolTable->define(symbol);
     // generate LLVM code
@@ -194,7 +205,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         std::string lval = std::any_cast<std::string> (visitLVal(context->lVal()));
         std::string rval = std::any_cast<std::string> (visitExp(context->exp()));
         std::stringstream ss;
-        VarType lvalType = VarType(currentType, false /*not Const*/, false /*not function*/, std::vector<int>());
+        VarType lvalType = VarType(currentBType, false /*not Const*/, false /*not function*/, std::vector<int>());
         ss << "store " << CactToLLVM(lvalType) << " " << rval << ", " << CactToLLVM(lvalType) << "* %" << lval;
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
@@ -292,14 +303,11 @@ std::any Analysis::visitExp(CactParser::ExpContext *context) {
     // return visitChildren(context);
     return std::any_cast<std::string> (visitAddExp(context->addExp()));
 }
-std::any Analysis::visitConstExp(CactParser::ConstExpContext *context) {
-    std::cout << "enter rule [constExp]!" << std::endl;
-    return visitChildren(context);
-}
+
 std::any Analysis::visitCond(CactParser::CondContext *context) {
     // std::cout << "enter rule [cond]!" << std::endl;
     // return visitChildren(context);
-    currentType = BaseType::BOOL;
+    currentBType = BaseType::BOOL;
     return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
 }
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
@@ -312,7 +320,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
-    currentType = s->type.baseType;
+    currentBType = s->type.baseType;
     if (s->type.isArray()) {
         std::string tmpid = ident;
         VarType tmpT = s->type;
@@ -329,10 +337,8 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         return ident;
     }
 }
+// return the LLVM IR for the integer constant
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
-    // std::cout << "enter rule [number]!" << "\t";
-    // std::cout << "the number is: " << context->getText().c_str() << std::endl;
-    // return visitChildren(context);
     if (context->intConst()) {
         return std::any_cast<std::string>(visitIntConst(context->intConst()));
     } else if (context->FloatConst()) {
@@ -410,14 +416,14 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
             std::string neg = newSSA("neg");
             std::stringstream ss;
-            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentType)) << " 0, " << right;
+            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentBType)) << " 0, " << right;
             currentBlock->addInstruction(ss.str());
             return neg;
         } else if (context->unaryOp()->NOT()) {
             std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
             std::string notssa = newSSA("not");
             std::stringstream ss;
-            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentType)) << " " << right << ", 0";
+            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentBType)) << " " << right << ", 0";
             currentBlock->addInstruction(ss.str());
             return notssa;
         } else {
@@ -435,7 +441,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         // TODO : call a function
         std::string funcret = newSSA("ret");
         std::stringstream ss;
-        ss << "%" << funcret << " = call " << CactToLLVM(VarType(currentType)) << " @" << ident << "(";
+        ss << "%" << funcret << " = call " << CactToLLVM(VarType(currentBType)) << " @" << ident << "(";
         if (context->funcRParams()) {
             std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
             ss << params;
@@ -461,11 +467,11 @@ std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
         std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp(i)));
         mul = newSSA("mul");
         if (context->mulOp(i - 1)->MUL()) {
-            ss << "%" << mul << " = mul " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+            ss << "%" << mul << " = mul " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
         } else if (context->mulOp(i - 1)->DIV()) {
-            ss << "%" << mul << " = sdiv " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+            ss << "%" << mul << " = sdiv " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
         } else if (context->mulOp(i - 1)->MOD()) {
-            ss << "%" << mul << " = srem " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+            ss << "%" << mul << " = srem " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
         }
         currentBlock->addInstruction(ss.str());
         ss.str("");
@@ -487,9 +493,9 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
         std::string right = std::any_cast<std::string>(visitMulExp(context->mulExp(i)));
         sum = newSSA("sum");
         if (context->addOp(i - 1)->PLUS()) {
-            ss << "%" << sum << " = add " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+            ss << "%" << sum << " = add " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
         } else if (context->addOp(i - 1)->MINUS()) {
-            ss << "%" << sum << " = sub " << CactToLLVM(VarType(currentType)) << " " << left << ", " << right;
+            ss << "%" << sum << " = sub " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
         }
         currentBlock->addInstruction(ss.str());
         ss.str("");
@@ -512,13 +518,13 @@ std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
         std::string right = std::any_cast<std::string>(visitAddExp(context->addExp(1)));
         rel = newSSA("rel");
         if (context->relOp()->LT()) {
-            currentBlock->addInstruction("%" + rel + " = icmp slt " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+            currentBlock->addInstruction("%" + rel + " = icmp slt " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
         } else if (context->relOp()->GT()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sgt " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+            currentBlock->addInstruction("%" + rel + " = icmp sgt " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
         } else if (context->relOp()->LE()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sle " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+            currentBlock->addInstruction("%" + rel + " = icmp sle " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
         } else if (context->relOp()->GE()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sge " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+            currentBlock->addInstruction("%" + rel + " = icmp sge " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
         }
         return rel;
     } else {
@@ -540,7 +546,7 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
     } else if (context->relExp().size() == 2) {
         std::string right = std::any_cast<std::string>(visitRelExp(context->relExp(1)));
         eq = newSSA("eq");
-        currentBlock->addInstruction("%" + eq + " = icmp eq " + CactToLLVM(VarType(currentType)) + " " + left + ", " + right);
+        currentBlock->addInstruction("%" + eq + " = icmp eq " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
         return eq;
     } else {
         std::cerr << "Error: Unknown eqExp!" << std::endl;

@@ -23,7 +23,7 @@ std::string CactToLLVM(const VarType &type) {
     if (type.isArray()) {
         for (int i = type.dimSizes.size() - 1; i >= 0; i--) {
             int dim = type.dimSizes[i];
-            if (dim == -1) {
+            if (dim == -1) { // to check
                 llvmType = llvmType + "*";
             } else {
                 llvmType = "[" + std::to_string(dim) + " x " + llvmType + "]";
@@ -33,10 +33,7 @@ std::string CactToLLVM(const VarType &type) {
     return llvmType;
 }
 
-LLVMBasicBlock::LLVMBasicBlock(std::string label) : label(std::move(label)) {
-
-}
-
+// ================ Basic Block
 void LLVMBasicBlock::addInstruction(const std::string &instruction) {
     instructions.push_back(instruction);
 }
@@ -52,6 +49,7 @@ std::string LLVMBasicBlock::toString() const {
     return ss.str();
 }
 
+// =============== Function
 LLVMFunction::LLVMFunction(std::string name, std::string retT, std::vector<LLVMValue> params)
     : name(std::move(name)), returnType(std::move(retT)), parameters(std::move(params)) {
 }
@@ -81,7 +79,7 @@ std::string LLVMFunction::newTmp(std::string prefix) {
     return prefix + std::to_string(tmpCounter++);
 }
 
-
+// =============== Global Variable
 LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant) {
     std::stringstream ss;
     ss << "@" << name << " =";
@@ -102,6 +100,7 @@ std::string LLVMGlobalVar::toString() const {
     return instruction;
 }
 
+// =============== Module
 void LLVMModule::addFunction(const LLVMFunction &function) {
     entries.emplace_back(function);
 }

@@ -30,11 +30,11 @@ public:
     RuleProgram = 0, RuleCompUnit = 1, RuleDecl = 2, RuleBType = 3, RuleConstDecl = 4, 
     RuleConstDef = 5, RuleConstInitVal = 6, RuleVarDecl = 7, RuleVarDef = 8, 
     RuleFuncDef = 9, RuleFuncType = 10, RuleFuncFParams = 11, RuleFuncFParam = 12, 
-    RuleBlock = 13, RuleBlockItem = 14, RuleStmt = 15, RuleExp = 16, RuleConstExp = 17, 
-    RuleCond = 18, RuleLVal = 19, RuleNumber = 20, RuleFuncRParams = 21, 
-    RulePrimaryExp = 22, RuleUnaryExp = 23, RuleUnaryOp = 24, RuleMulExp = 25, 
-    RuleMulOp = 26, RuleAddExp = 27, RuleAddOp = 28, RuleRelExp = 29, RuleRelOp = 30, 
-    RuleEqExp = 31, RuleEqOp = 32, RuleLAndExp = 33, RuleLOrExp = 34, RuleIntConst = 35
+    RuleBlock = 13, RuleBlockItem = 14, RuleStmt = 15, RuleExp = 16, RuleCond = 17, 
+    RuleLVal = 18, RuleNumber = 19, RuleFuncRParams = 20, RulePrimaryExp = 21, 
+    RuleUnaryExp = 22, RuleUnaryOp = 23, RuleMulExp = 24, RuleMulOp = 25, 
+    RuleAddExp = 26, RuleAddOp = 27, RuleRelExp = 28, RuleRelOp = 29, RuleEqExp = 30, 
+    RuleEqOp = 31, RuleLAndExp = 32, RuleLOrExp = 33, RuleIntConst = 34
   };
 
   explicit CactParser(antlr4::TokenStream *input);
@@ -71,7 +71,6 @@ public:
   class BlockItemContext;
   class StmtContext;
   class ExpContext;
-  class ConstExpContext;
   class CondContext;
   class LValContext;
   class NumberContext;
@@ -195,7 +194,7 @@ public:
   public:
     ConstInitValContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    ConstExpContext *constExp();
+    NumberContext *number();
     antlr4::tree::TerminalNode *L_BRACE();
     antlr4::tree::TerminalNode *R_BRACE();
     std::vector<ConstInitValContext *> constInitVal();
@@ -387,19 +386,6 @@ public:
   };
 
   ExpContext* exp();
-
-  class  ConstExpContext : public antlr4::ParserRuleContext {
-  public:
-    ConstExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    NumberContext *number();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  ConstExpContext* constExp();
 
   class  CondContext : public antlr4::ParserRuleContext {
   public:
