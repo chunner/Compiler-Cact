@@ -160,10 +160,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     }
 }
 std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
-    // std::cout << "enter rule [funcDef]!" << "\t";
-    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
-    // return visitChildren(context);
-    BaseType retT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
+    BaseType retBT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
     bool defined = currentSymbolTable->lookupInCurrentScope(ident, true /*is function*/);
@@ -172,59 +169,50 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         exit(EXIT_FAILURE);
     }
     // add symbol to symbol table
-    VarType symbolType = VarType(retT, false /*not Const*/, true /*is Function*/, std::vector<int>());
-    Symbol symbol{ ident, symbolType };
-    currentSymbolTable->define(symbol);
+    VarType retT = VarType(retBT, false /*not Const*/, true /*is Function*/);
+    currentSymbolTable->define(Symbol(ident, retT));
     // generate LLVM code
     std::vector<LLVMValue> parameters;
     if (context->funcFParams()) {
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
     }
-    LLVMFunction function(ident, CactToLLVM(symbolType), parameters);
-    llvmmodule.addFunction(function);
-    currentFunction = &function;
-    LLVMBasicBlock block("entry");
-    function.addBasicBlock(block);
-
+    LLVMFunction *function = new LLVMFunction(ident, CactBToLLVM(retBT), parameters);
+    currentFunction = function;
     // visit the function body
-    currentBlock = &block;
+    LLVMBasicBlock *block = new LLVMBasicBlock("entry");
+    function->addBasicBlock(*block);
+    currentBlock = block;
     isGlobal = false;
     currentSymbolTable = new SymbolTable(currentSymbolTable);
     visitBlock(context->block());
+    // visit the body end
     isGlobal = true;
     currentSymbolTable = currentSymbolTable->getParent();
+    llvmmodule.addFunction(*function);
 }
 std::any Analysis::visitFuncType(CactParser::FuncTypeContext *context) {
-    // std::cout << "enter rule [funcType]!" << std::endl;
-    // return visitChildren(context);
     if (context->VOID_KW()) return BaseType::VOID;
     if (context->bType()) {
         return std::any_cast<BaseType>(visitBType(context->bType()));
     }
 }
 std::any Analysis::visitFuncFParams(CactParser::FuncFParamsContext *context) {
-    // std::cout << "enter rule [funcFParams]!" << std::endl;
-    // return visitChildren(context);
     std::vector<LLVMValue> params;
     for (const auto &it : context->funcFParam()) {
         params.push_back(std::any_cast<LLVMValue>(visitFuncFParam(it)));
     }
 }
 std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
-    // std::cout << "enter rule [funcFParam]!" << "\t";
-    // std::cout << "the IDENT is: " << context->IDENT()->getText().c_str() << std::endl;
-    // return visitChildren(context);
     std::string ident = context->IDENT()->getText();
     BaseType baseT = std::any_cast<BaseType>(visitBType(context->bType()));
     std::vector<int> dimSize;
-    for (int i = 0; i < context->intConst().size(); i++) {
-        if (context->intConst(i) == nullptr) {
-            dimSize.push_back(-1);
-        } else {
-            dimSize.push_back(std::stoi(context->intConst(i)->getText()));
-        }
+    if (context->intConst().size() < context->L_BRACKET().size()) {
+        dimSize.push_back(-1);
     }
-    VarType varT = { baseT, false /*not Const*/, false /*not function*/ , dimSize };
+    for (int i = 0; i < context->intConst().size(); i++) {
+        dimSize.push_back(std::stoi(std::any_cast<std::string>(visitIntConst(context->intConst(i)))));
+    }
+    VarType varT = VarType(baseT, false /*not Const*/, false /*not function*/, dimSize);
     return LLVMValue(ident, CactToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
