@@ -23,6 +23,7 @@ struct VarType {
     bool isArray() const {
         return !dimSizes.empty();
     }
+    int getArraySize() const;
     VarType(BaseType baseT, bool isConst, bool isFunction, std::vector<int> dimSizes)
         : baseType(baseT), isConst(isConst), isFunction(isFunction), dimSizes(std::move(dimSizes)) {
     };

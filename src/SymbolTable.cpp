@@ -1,5 +1,32 @@
 #include "SymbolTable.h"
 
+int VarType::getArraySize()const {
+    int size;
+    switch (baseType) {
+        case BaseType::INT:
+            size = 4; 
+            break;
+        case BaseType::CHAR:
+            size = 1; 
+            break;
+        case BaseType::FLOAT:
+            size = 4; // assuming 4 bytes for float
+            break;
+        default:
+            std::cerr << "Error: Unsupported base type for array size calculation!" << std::endl;
+            exit(EXIT_FAILURE);
+    }
+    for (int dim : dimSizes) {
+        size *= dim;
+    }
+    return size;
+}
+
+
+
+
+
+
 SymbolTable::SymbolTable(SymbolTable *parent) :parent(parent) {
 }
 
@@ -8,9 +35,13 @@ SymbolTable::~SymbolTable() {
 }
 
 void SymbolTable::define(const Symbol &symbol) {
-    // Check if the symbol already exists in current scope
-
+    if (symbol.type.isFunction) {
+        func_table[symbol.name] = symbol;
+    } else {
+        var_table[symbol.name] = symbol;
+    }
 }
+
 
 Symbol *SymbolTable::lookup(const std::string &name, bool isFunction) {
     if (isFunction) {
@@ -36,7 +67,7 @@ Symbol *SymbolTable::lookup(const std::string &name, bool isFunction) {
     }
 }
 
-bool SymbolTable::lookupInCurrentScope(const std::string &name,bool isFunction) {
+bool SymbolTable::lookupInCurrentScope(const std::string &name, bool isFunction) {
     if (isFunction) {
         return func_table.find(name) != func_table.end();
     } else {

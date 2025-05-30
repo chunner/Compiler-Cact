@@ -32,6 +32,20 @@ std::string CactToLLVM(const VarType &type) {
     }
     return llvmType;
 }
+std::string CactBToLLVM(const BaseType &type) {
+    switch (type) {
+    case BaseType::INT:
+        return "i32";
+    case BaseType::DOUBLE:
+        return "double";
+    case BaseType::CHAR:
+        return "i8";
+    case BaseType::FLOAT:
+        return "float";
+    default:
+        return "void";
+    }
+}
 
 // ================ Basic Block
 void LLVMBasicBlock::addInstruction(const std::string &instruction) {
@@ -89,9 +103,9 @@ LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string ini
         ss << " global";
     }
     if (!initValue.empty()) {
-        ss << " " << type << " " << initValue;
+        ss << " " << initValue;
     } else {
-        ss << " " << type;
+        ss << " " << type << " zeroinitializer";
     }
     ss << "\n";
     instruction = std::move(ss.str());

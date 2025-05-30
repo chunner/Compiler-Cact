@@ -8,6 +8,7 @@
 #include <SymbolTable.h>
 
 std::string CactToLLVM(const VarType &type);
+std::string CactBToLLVM(const BaseType &type);
 
 struct LLVMValue {
     std::string name;
