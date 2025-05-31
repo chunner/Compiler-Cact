@@ -436,13 +436,13 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
             floatConst.pop_back();
         }
-        return std::make_pair("float", floatConst);
+        return std::pair<std::string, std::string>{"float", floatConst};
     } else if (context->EXPONENT()) {
         std::string exponent = context->EXPONENT()->getText();
         if (!exponent.empty() && (exponent.back() == 'f' || exponent.back() == 'F')) {
             exponent.pop_back();
         }
-        return std::make_pair("float", exponent);
+        return std::pair<std::string, std::string>{"float", exponent};
     } else if (context->CharConst()) {
         std::string ch = context->CharConst()->getText();
         if (ch.size() == 3 && ch.front() == '\'' && ch.back() == '\'') {
