@@ -132,6 +132,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         if (context->constInitVal()) {
             std::pair<std::string, std::string> initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
             LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), initval.second + " " + initval.first, false /* not Const*/);
+            llvmmodule.addGlobalVar(globalVar);
         } else {
             LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), "", false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
@@ -206,6 +207,7 @@ std::any Analysis::visitFuncFParams(CactParser::FuncFParamsContext *context) {
     for (const auto &it : context->funcFParam()) {
         params.push_back(std::any_cast<LLVMValue>(visitFuncFParam(it)));
     }
+    return params;
 }
 std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
     std::string ident = context->IDENT()->getText();
@@ -241,12 +243,12 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
         LLVMBasicBlock *block = new LLVMBasicBlock(newLabel("block"));
-        LLVMBasicBlock *oldBlock = currentBlock;
+        // LLVMBasicBlock *oldBlock = currentBlock;
         currentBlock = block;
         currentSymbolTable = new SymbolTable(currentSymbolTable);
         visitBlock(context->block());
         currentFunction->addBasicBlock(block);
-        currentBlock = oldBlock;
+        // currentBlock = oldBlock;
         currentSymbolTable = currentSymbolTable->getParent();
     } else if (context->IF_KW()) { // if (cond) stmt else stmt
         std::string thenLabel = newLabel("then");
@@ -307,6 +309,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentFunction->addBasicBlock(endBlock);
         currentBlock = endBlock;
         curEndLabel = "";
+        curCondLabel = "";
     } else if (context->BREAK_KW()) { // break
         if (curEndLabel.empty()) {
             std::cerr << "Error: break statement not in loop!" << std::endl;
@@ -322,8 +325,20 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             currentBlock->addInstruction("br label %" + curCondLabel);
         }
     } else if (context->RETURN_KW()) { // return exp;
-        std::string ret = std::any_cast<std::string>(visitExp(context->exp()));
-        currentBlock->addInstruction("ret " + currentFunction->returnType + " " + ret);
+        if (context->exp()) {
+            auto ret = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp()));
+            if (currentFunction->returnType != ret.first && currentFunction->returnType != "void") {
+                std::cerr << "Error: Type mismatch in return statement! Expected " << currentFunction->returnType << ", got " << ret.first << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            currentBlock->addInstruction("ret " + currentFunction->returnType + " " + ret.second);
+        } else {
+            if (currentFunction->returnType != "void") {
+                std::cerr << "Error: Function " << currentFunction->name << " must return a value!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            currentBlock->addInstruction("ret void");
+        }
     } else { // exp?;
         if (context->exp()) {
             visit(context->exp());
@@ -389,7 +404,7 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         std::string ch = context->CharConst()->getText();
         if (ch.size() == 3 && ch.front() == '\'' && ch.back() == '\'') {
             int val = static_cast<int>(ch[1]);
-            return std::to_string(val);
+            return std::make_pair("i8", std::to_string(val));
         } else if (ch.size() == 4 && ch[1] == '\\') {
             char esc = ch[2];
             int val = 0;
