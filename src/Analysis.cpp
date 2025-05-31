@@ -1,7 +1,14 @@
 #include <Analysis.h>
 using namespace std;
 std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
-    return visitCompUnit(context->compUnit());
+    visitCompUnit(context->compUnit());
+    std::fstream outFile("output.ll", std::ios::out);
+    if (!outFile.is_open()) {
+        std::cerr << "Error: Could not open output file!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    outFile << llvmmodule.toString();
+    
 }
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
