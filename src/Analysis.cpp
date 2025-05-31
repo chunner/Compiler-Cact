@@ -8,7 +8,7 @@ std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
         exit(EXIT_FAILURE);
     }
     outFile << llvmmodule.toString();
-    
+
 }
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
@@ -547,7 +547,6 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
     }
 }
 std::any Analysis::visitUnaryOp(CactParser::UnaryOpContext *context) {
-    return;
 }
 std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
     auto left = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp(0)));

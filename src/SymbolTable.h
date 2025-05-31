@@ -44,6 +44,8 @@ enum class SymbolKind {
 struct Symbol {
     std::string name;
     VarType type;
+    Symbol() : name(""), type(BaseType::VOID) {
+    };
     Symbol(std::string name, VarType type)
         : name(std::move(name)), type(std::move(type)) {
     };
