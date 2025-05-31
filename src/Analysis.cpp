@@ -8,7 +8,7 @@ std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
         exit(EXIT_FAILURE);
     }
     outFile << llvmmodule.toString();
-
+    return 0;
 }
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
@@ -16,13 +16,22 @@ std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     return visitChildren(context);
 }
 std::any Analysis::visitDecl(CactParser::DeclContext *context) {
-    return visitChildren(context);
+    if (context->constDecl()) {
+        visitConstDecl(context->constDecl());
+    } else if (context->varDecl()) {
+        visitVarDecl(context->varDecl());
+    } else {
+        std::cerr << "Error: Unknown declaration type!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return 0;
 }
 std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
     currentBType = std::any_cast<BaseType>(visitBType(context->bType()));
     for (const auto &it : context->constDef()) {
         visitConstDef(it);
     }
+    return 0;
 }
 std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     // std::cout << "enter rule [bType]!" << "\t";
@@ -82,6 +91,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
             currentBlock->addInstruction(ss.str());
         }
     }
+    return 0;;
 }
 // return {value, type}
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
@@ -92,7 +102,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
             std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << num.second << std::endl;
             exit(EXIT_FAILURE);
         }
-        return std::make_pair(num.second, basellT);
+        return std::make_pair(basellT, num.second); // return {type, value}
     } else { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<std::pair<std::string, std::string>> initVals;
         for (const auto &it : context->constInitVal()) {
@@ -117,7 +127,7 @@ std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
     for (auto it : context->varDef()) {
         visitVarDef(it);
     }
-    // return visitChildren(context);
+    return 0;
 }
 std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     std::string ident = context->IDENT()->getText();
@@ -171,6 +181,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
             }
         }
     }
+    return 0;
 }
 std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     BaseType retBT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
@@ -212,6 +223,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     isGlobal = true;
     currentSymbolTable = currentSymbolTable->getParent();
     llvmmodule.addFunction(*function);
+    return 0;
 }
 std::any Analysis::visitFuncType(CactParser::FuncTypeContext *context) {
     if (context->VOID_KW()) return BaseType::VOID;
@@ -243,9 +255,18 @@ std::any Analysis::visitBlock(CactParser::BlockContext *context) {
     for (const auto &it : context->blockItem()) {
         visitBlockItem(it);
     }
+    return 0;
 }
 std::any Analysis::visitBlockItem(CactParser::BlockItemContext *context) {
-    visitChildren(context);
+    if (context->decl()) { // decl
+        visitDecl(context->decl());
+    } else if (context->stmt()) { // stmt
+        visitStmt(context->stmt());
+    } else {
+        std::cerr << "Error: Unknown block item!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return 0;
 }
 std::any Analysis::visitStmt(CactParser::StmtContext *context) {
     if (context->lVal()) {  // lva = exp;
@@ -361,6 +382,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             visit(context->exp());
         }
     }
+    return 0;
 }
 std::any Analysis::visitExp(CactParser::ExpContext *context) {
     return (visitAddExp(context->addExp()));

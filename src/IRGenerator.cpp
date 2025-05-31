@@ -79,7 +79,7 @@ void LLVMFunction::addBasicBlock(LLVMBasicBlock *block) {
 
 std::string LLVMFunction::toString()const {
     std::stringstream ss;
-    ss << "define " << returnType << "" << name << "(";
+    ss << "define " << returnType << " @" << name << "(";
     for (size_t i = 0; i < parameters.size(); ++i) {
         ss << TypeToLLVM(parameters[i].type) << " " << "%" << parameters[i].name;
         if (i < parameters.size() - 1) {
