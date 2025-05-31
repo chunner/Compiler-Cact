@@ -68,7 +68,7 @@ LLVMFunction::LLVMFunction(std::string name, std::string retT, std::vector<LLVMV
     : name(std::move(name)), returnType(std::move(retT)), parameters(std::move(params)) {
 }
 
-void LLVMFunction::addBasicBlock(const LLVMBasicBlock &block) {
+void LLVMFunction::addBasicBlock(LLVMBasicBlock *block) {
     basicblocks.push_back(block);
 }
 
@@ -83,7 +83,7 @@ std::string LLVMFunction::toString()const {
     }
     ss << ") {\n";
     for (const auto &block : basicblocks) {
-        ss << block.toString();
+        ss << block->toString();
     }
     ss << "}\n";
     return ss.str();

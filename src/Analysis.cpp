@@ -185,7 +185,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     currentFunction = function;
     // visit the function body
     LLVMBasicBlock *block = new LLVMBasicBlock("entry");
-    function->addBasicBlock(*block);
+    function->addBasicBlock(block);
     currentBlock = block;
     isGlobal = false;
     currentSymbolTable = new SymbolTable(currentSymbolTable);
@@ -240,12 +240,12 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         ss << "store " << right.first << " " << right.second << ", " << left_ptr.first << "* " << left_ptr.second;
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
-        LLVMBasicBlock block(newLabel("block"));
-        currentFunction->addBasicBlock(block);
+        LLVMBasicBlock *block = new LLVMBasicBlock(newLabel("block"));
         LLVMBasicBlock *oldBlock = currentBlock;
-        currentBlock = &block;
+        currentBlock = block;
         currentSymbolTable = new SymbolTable(currentSymbolTable);
         visitBlock(context->block());
+        currentFunction->addBasicBlock(block);
         currentBlock = oldBlock;
         currentSymbolTable = currentSymbolTable->getParent();
     } else if (context->IF_KW()) { // if (cond) stmt else stmt
@@ -263,24 +263,24 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentBlock->addInstruction(ss.str());
         // then
         LLVMBasicBlock *thenBlock = new LLVMBasicBlock(thenLabel);
-        currentFunction->addBasicBlock(*thenBlock);
         currentBlock = thenBlock;
         visitStmt(context->stmt(0));
         currentBlock->addInstruction("br label %" + endLabel);
+        currentFunction->addBasicBlock(thenBlock);
 
         // else
         if (context->ELSE_KW()) {
             LLVMBasicBlock *elseBlock = new LLVMBasicBlock(elseLabel);
-            currentFunction->addBasicBlock(*elseBlock);
             currentBlock = elseBlock;
             visitStmt(context->stmt(1));
             currentBlock->addInstruction("br label %" + endLabel);
+            currentFunction->addBasicBlock(elseBlock);
         }
 
         // end
         LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
-        currentFunction->addBasicBlock(*endBlock);
         currentBlock = endBlock;
+        currentFunction->addBasicBlock(endBlock);
     } else if (context->WHILE_KW()) { // while (cond) stmt
         std::string condLabel = newLabel("while_cond");
         std::string bodyLabel = newLabel("while_body");
@@ -290,7 +290,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         curEndLabel = endLabel;
         // cond
         LLVMBasicBlock *condBlock = new LLVMBasicBlock(condLabel);
-        currentFunction->addBasicBlock(*condBlock);
+        currentFunction->addBasicBlock(condBlock);
         currentBlock = condBlock;
         std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
         std::stringstream ss;
@@ -298,14 +298,15 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentBlock->addInstruction(ss.str());
         // body
         LLVMBasicBlock *bodyBlock = new LLVMBasicBlock(bodyLabel);
-        currentFunction->addBasicBlock(*bodyBlock);
+        currentFunction->addBasicBlock(bodyBlock);
         currentBlock = bodyBlock;
         visitStmt(context->stmt(0));
         currentBlock->addInstruction("br label %" + condLabel);
         // end
         LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
-        currentFunction->addBasicBlock(*endBlock);
+        currentFunction->addBasicBlock(endBlock);
         currentBlock = endBlock;
+        curEndLabel = "";
     } else if (context->BREAK_KW()) { // break
         if (curEndLabel.empty()) {
             std::cerr << "Error: break statement not in loop!" << std::endl;
@@ -334,12 +335,9 @@ std::any Analysis::visitExp(CactParser::ExpContext *context) {
 }
 
 std::any Analysis::visitCond(CactParser::CondContext *context) {
-    // std::cout << "enter rule [cond]!" << std::endl;
-    // return visitChildren(context);
     currentBType = BaseType::BOOL;
     return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
 }
-// TODO
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
@@ -589,43 +587,50 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
 std::any Analysis::visitAddOp(CactParser::AddOpContext *context) {
 }
 std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
-    std::string left = std::any_cast<std::string>(visitAddExp(context->addExp(0)));
-    std::string rel = left;
+    auto left = std::any_cast<std::pair<std::string, std::string>>(visitAddExp(context->addExp(0)));
+    auto rel = left;
     if (context->addExp().size() == 1) {
         return rel;
     } else if (context->addExp().size() == 2) {
-        std::string right = std::any_cast<std::string>(visitAddExp(context->addExp(1)));
-        rel = newSSA("rel");
-        if (context->relOp()->LT()) {
-            currentBlock->addInstruction("%" + rel + " = icmp slt " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
-        } else if (context->relOp()->GT()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sgt " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
-        } else if (context->relOp()->LE()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sle " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
-        } else if (context->relOp()->GE()) {
-            currentBlock->addInstruction("%" + rel + " = icmp sge " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitAddExp(context->addExp(1)));
+        if (left.first != right.first) {
+            std::cerr << "Error: Type mismatch in relational expression! Expected " << left.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
         }
+        rel.second = newSSA("rel");
+        if (context->relOp()->LT()) {
+            currentBlock->addInstruction("%" + rel.second + " = icmp slt " + left.first + " " + left.second + ", " + right.second);
+        } else if (context->relOp()->GT()) {
+            currentBlock->addInstruction("%" + rel.second + " = icmp sgt " + left.first + " " + left.second + ", " + right.second);
+        } else if (context->relOp()->GE()) {
+            currentBlock->addInstruction("%" + rel.second + " = icmp sge " + left.first + " " + left.second + ", " + right.second);
+        } else if (context->relOp()->LE()) {
+            currentBlock->addInstruction("%" + rel.second + " = icmp sle " + left.first + " " + left.second + ", " + right.second);
+        }
+        rel.first = "i1";
         return rel;
-    } else {
-        std::cerr << "Error: Unknown relExp!" << std::endl;
-        exit(EXIT_FAILURE);
     }
 }
 std::any Analysis::visitRelOp(CactParser::RelOpContext *context) {
-    std::cout << "enter rule [relOp]!" << std::endl;
-    return visitChildren(context);
 }
 std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
-    // std::cout << "enter rule [eqExp]!" << std::endl;
-    // return visitChildren(context);
-    std::string left = std::any_cast<std::string>(visitRelExp(context->relExp(0)));
-    std::string eq = left;
+    auto left = std::any_cast<std::pair<std::string, std::string>>(visitRelExp(context->relExp(0)));
+    auto eq = left;
     if (context->relExp().size() == 1) {
         return eq;
     } else if (context->relExp().size() == 2) {
-        std::string right = std::any_cast<std::string>(visitRelExp(context->relExp(1)));
-        eq = newSSA("eq");
-        currentBlock->addInstruction("%" + eq + " = icmp eq " + CactToLLVM(VarType(currentBType)) + " " + left + ", " + right);
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitRelExp(context->relExp(1)));
+        if (left.first != right.first) {
+            std::cerr << "Error: Type mismatch in equality expression! Expected " << left.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        eq.second = newSSA("eq");
+        if (context->eqOp()->EQ()) {
+            currentBlock->addInstruction("%" + eq.second + " = icmp eq " + eq.first + " " + left.second + ", " + right.second);
+        } else if (context->eqOp()->NEQ()) {
+            currentBlock->addInstruction("%" + eq.second + " = icmp ne " + eq.first + " " + left.second + ", " + right.second);
+        }
+        eq.first = "i1";
         return eq;
     } else {
         std::cerr << "Error: Unknown eqExp!" << std::endl;
@@ -634,36 +639,40 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
 
 }
 std::any Analysis::visitEqOp(CactParser::EqOpContext *context) {
-    std::cout << "enter rule [eqOp]!" << std::endl;
-    return visitChildren(context);
 }
 std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
-    // std::cout << "enter rule [lAndExp]!" << std::endl;
-    // return visitChildren(context);
-    std::string left = std::any_cast<std::string>(visitEqExp(context->eqExp(0)));
-    std::string land = left;
+    auto left = std::any_cast<std::pair<string, std::string>>(visitEqExp(context->eqExp(0)));
+    if (left.first != "i1") {
+        std::cerr << "Error: Type mismatch in logical AND expression! Expected i1, got " << left.first << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    auto land = left;
     for (int i = 1; i < context->eqExp().size(); i++) {
-        std::string right = std::any_cast<std::string>(visitEqExp(context->eqExp(i)));
-        land = newSSA("land");
-        currentBlock->addInstruction("%" + land + " = and i1 " + left + ", " + right);
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitEqExp(context->eqExp(i)));
+        if (left.first != right.first) {
+            std::cerr << "Error: Type mismatch in logical AND expression! Expected " << left.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        land.second = newSSA("land");
+        currentBlock->addInstruction("%" + land.second + " = and i1 " + left.second + ", " + right.second);
     }
     return land;
 }
 std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
-    // std::cout << "enter rule [lOrExp]!" << std::endl;
-    // return visitChildren(context);
-    std::string left = std::any_cast<std::string>(visitLAndExp(context->lAndExp(0)));
-    std::string lor = left;
+    auto left = std::any_cast<std::pair<std::string, std::string>>(visitLAndExp(context->lAndExp(0)));
+    if (left.first != "i1") {
+        std::cerr << "Error: Type mismatch in logical OR expression! Expected i1, got " << left.first << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    auto lor = left;
     for (int i = 1; i < context->lAndExp().size(); i++) {
-        std::string right = std::any_cast<std::string>(visitLAndExp(context->lAndExp(i)));
-        lor = newSSA("lor");
-        currentBlock->addInstruction("%" + lor + " = or i1 " + left + ", " + right);
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitLAndExp(context->lAndExp(i)));
+        lor.second = newSSA("lor");
+        currentBlock->addInstruction("%" + lor.second + " = or i1 " + left.second + ", " + right.second);
     }
     return lor;
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
-    // std::cout << "enter rule [intConst]!" << std::endl;
-    // return visitChildren(context);
     if (context->DECIMAL_CONST()) {
         return context->DECIMAL_CONST()->getText();
     } else if (context->OCTAL_CONST()) {

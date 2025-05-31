@@ -32,9 +32,9 @@ public:
     std::string name;
     std::string returnType;
     std::vector<LLVMValue> parameters;
-    std::vector<LLVMBasicBlock> basicblocks;
+    std::vector<LLVMBasicBlock *> basicblocks;
     LLVMFunction(std::string name, std::string retT, std::vector<LLVMValue> params);
-    void addBasicBlock(const LLVMBasicBlock &block);
+    void addBasicBlock(LLVMBasicBlock *block);
     std::string toString()const;
     int tmpCounter = 0;
     std::string newTmp(std::string prefix);
