@@ -17,13 +17,13 @@ public:
   enum {
     CONST_KW = 1, INT_KW = 2, DOUBLE_KW = 3, CHAR_KW = 4, FLOAT_KW = 5, 
     BOOL_KW = 6, VOID_KW = 7, IF_KW = 8, ELSE_KW = 9, WHILE_KW = 10, BREAK_KW = 11, 
-    CONTINUE_KW = 12, RETURN_KW = 13, IDENT = 14, DECIMAL_CONST = 15, OCTAL_CONST = 16, 
-    HEXADECIMAL_CONST = 17, FloatConst = 18, EXPONENT = 19, CharConst = 20, 
-    STRING = 21, PLUS = 22, MINUS = 23, NOT = 24, MUL = 25, DIV = 26, MOD = 27, 
-    ASSIGN = 28, EQ = 29, NEQ = 30, GT = 31, LT = 32, GE = 33, LE = 34, 
-    AND = 35, OR = 36, L_PAREN = 37, R_PAREN = 38, L_BRACE = 39, R_BRACE = 40, 
-    L_BRACKET = 41, R_BRACKET = 42, COMMA = 43, SEMICOLON = 44, DOUBLE_QUOTE = 45, 
-    WS = 46, LineComment = 47, BlockComment = 48
+    CONTINUE_KW = 12, RETURN_KW = 13, FALSE = 14, TRUE = 15, IDENT = 16, 
+    DECIMAL_CONST = 17, OCTAL_CONST = 18, HEXADECIMAL_CONST = 19, FloatConst = 20, 
+    EXPONENT = 21, CharConst = 22, STRING = 23, PLUS = 24, MINUS = 25, NOT = 26, 
+    MUL = 27, DIV = 28, MOD = 29, ASSIGN = 30, EQ = 31, NEQ = 32, GT = 33, 
+    LT = 34, GE = 35, LE = 36, AND = 37, OR = 38, L_PAREN = 39, R_PAREN = 40, 
+    L_BRACE = 41, R_BRACE = 42, L_BRACKET = 43, R_BRACKET = 44, COMMA = 45, 
+    SEMICOLON = 46, DOUBLE_QUOTE = 47, WS = 48, LineComment = 49, BlockComment = 50
   };
 
   explicit CactLexer(antlr4::CharStream *input);

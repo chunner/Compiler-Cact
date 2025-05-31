@@ -92,6 +92,8 @@ public:
 
     virtual std::any visitIntConst(CactParser::IntConstContext *context) = 0;
 
+    virtual std::any visitBoolConst(CactParser::BoolConstContext *context) = 0;
+
 
 };
 

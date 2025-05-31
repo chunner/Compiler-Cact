@@ -17,13 +17,13 @@ public:
   enum {
     CONST_KW = 1, INT_KW = 2, DOUBLE_KW = 3, CHAR_KW = 4, FLOAT_KW = 5, 
     BOOL_KW = 6, VOID_KW = 7, IF_KW = 8, ELSE_KW = 9, WHILE_KW = 10, BREAK_KW = 11, 
-    CONTINUE_KW = 12, RETURN_KW = 13, IDENT = 14, DECIMAL_CONST = 15, OCTAL_CONST = 16, 
-    HEXADECIMAL_CONST = 17, FloatConst = 18, EXPONENT = 19, CharConst = 20, 
-    STRING = 21, PLUS = 22, MINUS = 23, NOT = 24, MUL = 25, DIV = 26, MOD = 27, 
-    ASSIGN = 28, EQ = 29, NEQ = 30, GT = 31, LT = 32, GE = 33, LE = 34, 
-    AND = 35, OR = 36, L_PAREN = 37, R_PAREN = 38, L_BRACE = 39, R_BRACE = 40, 
-    L_BRACKET = 41, R_BRACKET = 42, COMMA = 43, SEMICOLON = 44, DOUBLE_QUOTE = 45, 
-    WS = 46, LineComment = 47, BlockComment = 48
+    CONTINUE_KW = 12, RETURN_KW = 13, FALSE = 14, TRUE = 15, IDENT = 16, 
+    DECIMAL_CONST = 17, OCTAL_CONST = 18, HEXADECIMAL_CONST = 19, FloatConst = 20, 
+    EXPONENT = 21, CharConst = 22, STRING = 23, PLUS = 24, MINUS = 25, NOT = 26, 
+    MUL = 27, DIV = 28, MOD = 29, ASSIGN = 30, EQ = 31, NEQ = 32, GT = 33, 
+    LT = 34, GE = 35, LE = 36, AND = 37, OR = 38, L_PAREN = 39, R_PAREN = 40, 
+    L_BRACE = 41, R_BRACE = 42, L_BRACKET = 43, R_BRACKET = 44, COMMA = 45, 
+    SEMICOLON = 46, DOUBLE_QUOTE = 47, WS = 48, LineComment = 49, BlockComment = 50
   };
 
   enum {
@@ -34,7 +34,8 @@ public:
     RuleLVal = 18, RuleNumber = 19, RuleFuncRParams = 20, RulePrimaryExp = 21, 
     RuleUnaryExp = 22, RuleUnaryOp = 23, RuleMulExp = 24, RuleMulOp = 25, 
     RuleAddExp = 26, RuleAddOp = 27, RuleRelExp = 28, RuleRelOp = 29, RuleEqExp = 30, 
-    RuleEqOp = 31, RuleLAndExp = 32, RuleLOrExp = 33, RuleIntConst = 34
+    RuleEqOp = 31, RuleLAndExp = 32, RuleLOrExp = 33, RuleIntConst = 34, 
+    RuleBoolConst = 35
   };
 
   explicit CactParser(antlr4::TokenStream *input);
@@ -88,7 +89,8 @@ public:
   class EqOpContext;
   class LAndExpContext;
   class LOrExpContext;
-  class IntConstContext; 
+  class IntConstContext;
+  class BoolConstContext; 
 
   class  ProgramContext : public antlr4::ParserRuleContext {
   public:
@@ -202,6 +204,7 @@ public:
     ConstInitValContext* constInitVal(size_t i);
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
+    BoolConstContext *boolConst();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -466,6 +469,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> R_BRACKET();
     antlr4::tree::TerminalNode* R_BRACKET(size_t i);
     NumberContext *number();
+    BoolConstContext *boolConst();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -675,6 +679,20 @@ public:
   };
 
   IntConstContext* intConst();
+
+  class  BoolConstContext : public antlr4::ParserRuleContext {
+  public:
+    BoolConstContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *TRUE();
+    antlr4::tree::TerminalNode *FALSE();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  BoolConstContext* boolConst();
 
 
   // By default the static state used to implement the parser is lazily initialized during the first

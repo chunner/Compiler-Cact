@@ -97,7 +97,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
             exit(EXIT_FAILURE);
         }
         return std::make_pair(basellT, num.second); // return {type, value}
-    } else { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
+    } else if (context->L_BRACE()){ // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<std::pair<std::string, std::string>> initVals;
         for (const auto &it : context->constInitVal()) {
             initVals.push_back(std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(it)));
@@ -114,6 +114,14 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         }
         ss << "]";
         return std::make_pair(arrayT, ss.str());
+    } else if (context->boolConst()) {
+        auto boolConst = std::any_cast<std::pair<std::string, std::string>>(visitBoolConst(context->boolConst()));
+        std::string basellT = BTypeToLLVM(BaseType::I1);
+        if (boolConst.first != basellT) {
+            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << boolConst.second << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        return std::make_pair(basellT, boolConst.second); // return {type, value}
     }
 }
 std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
@@ -524,6 +532,8 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
         }
     } else if (context->number()) {
         return (visitNumber(context->number()));
+    } else if (context->boolConst()) {
+        return visitBoolConst(context->boolConst());
     }
 }
 std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
@@ -742,6 +752,16 @@ std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
         return std::to_string(decimal);
     } else {
         std::cerr << "Error: Unknown integer constant!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+std::any Analysis::visitBoolConst(CactParser::BoolConstContext *context) {
+    if (context->TRUE()) {
+        return std::make_pair("i1", "1");
+    } else if (context->FALSE()) {
+        return std::make_pair("i1", "0");
+    } else {
+        std::cerr << "Error: Unknown boolean constant!" << std::endl;
         exit(EXIT_FAILURE);
     }
 }

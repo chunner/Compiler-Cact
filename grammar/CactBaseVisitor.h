@@ -158,6 +158,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitBoolConst(CactParser::BoolConstContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
 
 };
 

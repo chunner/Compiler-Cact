@@ -14,7 +14,8 @@ bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW | BOOL_KW;
 constDecl   : CONST_KW bType constDef (COMMA constDef)* SEMICOLON;// const int id1[1][2] = 1, id2 = 2, id3[1] = {1,2};
 constDef    : IDENT (L_BRACKET intConst R_BRACKET)* ASSIGN constInitVal;
 constInitVal: number
-            | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE;  // { 1,2,3 ,4 }
+            | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE  // { 1,2,3 ,4 }
+            | boolConst;
 
 varDecl     : bType varDef (COMMA varDef)* SEMICOLON; // int id1[1][2] = 2, id2, id3[1] = {1,2};
 varDef      : IDENT (L_BRACKET intConst R_BRACKET)* (ASSIGN constInitVal)?;
@@ -45,7 +46,8 @@ funcRParams : exp (COMMA exp)*;
 // 8 primary level
 primaryExp  : L_PAREN exp R_PAREN 
             | IDENT (L_BRACKET exp R_BRACKET)*
-            | number;
+            | number
+            | boolConst;
 
 unaryExp    : primaryExp
             | unaryOp unaryExp
@@ -70,7 +72,7 @@ lOrExp      : lAndExp (OR lAndExp)*;
 
 
 intConst    : DECIMAL_CONST | OCTAL_CONST | HEXADECIMAL_CONST;
-
+boolConst   : TRUE | FALSE;
 
 
 
@@ -92,6 +94,8 @@ WHILE_KW    : 'while';
 BREAK_KW    : 'break';
 CONTINUE_KW : 'continue';
 RETURN_KW   : 'return';
+FALSE       : 'false';
+TRUE        : 'true';
 // identifiers
 IDENT       : [a-zA-Z_][a-zA-Z_0-9]*;
 // const

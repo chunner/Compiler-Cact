@@ -67,6 +67,7 @@ public:
     std::any visitLAndExp(CactParser::LAndExpContext *context) override;
     std::any visitLOrExp(CactParser::LOrExpContext *context) override;
     std::any visitIntConst(CactParser::IntConstContext *context) override;
+    std::any visitBoolConst(CactParser::BoolConstContext *context) override;
     std::any visitErrorNode(tree::ErrorNode *node) override;
 
 

@@ -60,143 +60,146 @@ void cactParserInitialize() {
       "block", "blockItem", "stmt", "exp", "cond", "lVal", "number", "funcRParams", 
       "primaryExp", "unaryExp", "unaryOp", "mulExp", "mulOp", "addExp", 
       "addOp", "relExp", "relOp", "eqExp", "eqOp", "lAndExp", "lOrExp", 
-      "intConst"
+      "intConst", "boolConst"
     },
     std::vector<std::string>{
       "", "'const'", "'int'", "'double'", "'char'", "'float'", "'bool'", 
       "'void'", "'if'", "'else'", "'while'", "'break'", "'continue'", "'return'", 
-      "", "", "", "", "", "", "", "", "'+'", "'-'", "'!'", "'*'", "'/'", 
-      "'%'", "'='", "'=='", "'!='", "'>'", "'<'", "'>='", "'<='", "'&&'", 
-      "'||'", "'('", "')'", "'{'", "'}'", "'['", "']'", "','", "';'", "'\"'"
+      "'false'", "'true'", "", "", "", "", "", "", "", "", "'+'", "'-'", 
+      "'!'", "'*'", "'/'", "'%'", "'='", "'=='", "'!='", "'>'", "'<'", "'>='", 
+      "'<='", "'&&'", "'||'", "'('", "')'", "'{'", "'}'", "'['", "']'", 
+      "','", "';'", "'\"'"
     },
     std::vector<std::string>{
       "", "CONST_KW", "INT_KW", "DOUBLE_KW", "CHAR_KW", "FLOAT_KW", "BOOL_KW", 
       "VOID_KW", "IF_KW", "ELSE_KW", "WHILE_KW", "BREAK_KW", "CONTINUE_KW", 
-      "RETURN_KW", "IDENT", "DECIMAL_CONST", "OCTAL_CONST", "HEXADECIMAL_CONST", 
-      "FloatConst", "EXPONENT", "CharConst", "STRING", "PLUS", "MINUS", 
-      "NOT", "MUL", "DIV", "MOD", "ASSIGN", "EQ", "NEQ", "GT", "LT", "GE", 
-      "LE", "AND", "OR", "L_PAREN", "R_PAREN", "L_BRACE", "R_BRACE", "L_BRACKET", 
-      "R_BRACKET", "COMMA", "SEMICOLON", "DOUBLE_QUOTE", "WS", "LineComment", 
-      "BlockComment"
+      "RETURN_KW", "FALSE", "TRUE", "IDENT", "DECIMAL_CONST", "OCTAL_CONST", 
+      "HEXADECIMAL_CONST", "FloatConst", "EXPONENT", "CharConst", "STRING", 
+      "PLUS", "MINUS", "NOT", "MUL", "DIV", "MOD", "ASSIGN", "EQ", "NEQ", 
+      "GT", "LT", "GE", "LE", "AND", "OR", "L_PAREN", "R_PAREN", "L_BRACE", 
+      "R_BRACE", "L_BRACKET", "R_BRACKET", "COMMA", "SEMICOLON", "DOUBLE_QUOTE", 
+      "WS", "LineComment", "BlockComment"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,48,355,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,50,361,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
   	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
-  	28,2,29,7,29,2,30,7,30,2,31,7,31,2,32,7,32,2,33,7,33,2,34,7,34,1,0,1,
-  	0,1,1,1,1,4,1,75,8,1,11,1,12,1,76,1,1,1,1,1,2,1,2,3,2,83,8,2,1,3,1,3,
-  	1,4,1,4,1,4,1,4,1,4,5,4,92,8,4,10,4,12,4,95,9,4,1,4,1,4,1,5,1,5,1,5,1,
-  	5,1,5,5,5,104,8,5,10,5,12,5,107,9,5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,5,
-  	6,117,8,6,10,6,12,6,120,9,6,3,6,122,8,6,1,6,3,6,125,8,6,1,7,1,7,1,7,1,
-  	7,5,7,131,8,7,10,7,12,7,134,9,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,5,8,143,8,
-  	8,10,8,12,8,146,9,8,1,8,1,8,3,8,150,8,8,1,9,1,9,1,9,1,9,3,9,156,8,9,1,
-  	9,1,9,1,9,1,10,1,10,3,10,163,8,10,1,11,1,11,1,11,5,11,168,8,11,10,11,
-  	12,11,171,9,11,1,12,1,12,1,12,1,12,3,12,177,8,12,1,12,1,12,1,12,1,12,
-  	1,12,5,12,184,8,12,10,12,12,12,187,9,12,3,12,189,8,12,1,13,1,13,5,13,
-  	193,8,13,10,13,12,13,196,9,13,1,13,1,13,1,14,1,14,3,14,202,8,14,1,15,
-  	1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,3,15,217,
-  	8,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,3,15,
-  	231,8,15,1,15,1,15,3,15,235,8,15,1,15,3,15,238,8,15,1,16,1,16,1,17,1,
-  	17,1,18,1,18,1,18,1,18,1,18,5,18,249,8,18,10,18,12,18,252,9,18,1,19,1,
-  	19,1,19,1,19,3,19,258,8,19,1,20,1,20,1,20,5,20,263,8,20,10,20,12,20,266,
-  	9,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,5,21,277,8,21,10,21,
-  	12,21,280,9,21,1,21,3,21,283,8,21,1,22,1,22,1,22,1,22,1,22,1,22,1,22,
-  	3,22,292,8,22,1,22,3,22,295,8,22,1,23,1,23,1,24,1,24,1,24,1,24,5,24,303,
-  	8,24,10,24,12,24,306,9,24,1,25,1,25,1,26,1,26,1,26,1,26,5,26,314,8,26,
-  	10,26,12,26,317,9,26,1,27,1,27,1,28,1,28,1,28,1,28,3,28,325,8,28,1,29,
-  	1,29,1,30,1,30,1,30,1,30,3,30,333,8,30,1,31,1,31,1,32,1,32,1,32,5,32,
-  	340,8,32,10,32,12,32,343,9,32,1,33,1,33,1,33,5,33,348,8,33,10,33,12,33,
-  	351,9,33,1,34,1,34,1,34,0,0,35,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,
-  	30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,0,7,1,0,2,
-  	6,1,0,22,24,1,0,25,27,1,0,22,23,1,0,31,34,1,0,29,30,1,0,15,17,365,0,70,
-  	1,0,0,0,2,74,1,0,0,0,4,82,1,0,0,0,6,84,1,0,0,0,8,86,1,0,0,0,10,98,1,0,
-  	0,0,12,124,1,0,0,0,14,126,1,0,0,0,16,137,1,0,0,0,18,151,1,0,0,0,20,162,
-  	1,0,0,0,22,164,1,0,0,0,24,172,1,0,0,0,26,190,1,0,0,0,28,201,1,0,0,0,30,
-  	237,1,0,0,0,32,239,1,0,0,0,34,241,1,0,0,0,36,243,1,0,0,0,38,257,1,0,0,
-  	0,40,259,1,0,0,0,42,282,1,0,0,0,44,294,1,0,0,0,46,296,1,0,0,0,48,298,
-  	1,0,0,0,50,307,1,0,0,0,52,309,1,0,0,0,54,318,1,0,0,0,56,320,1,0,0,0,58,
-  	326,1,0,0,0,60,328,1,0,0,0,62,334,1,0,0,0,64,336,1,0,0,0,66,344,1,0,0,
-  	0,68,352,1,0,0,0,70,71,3,2,1,0,71,1,1,0,0,0,72,75,3,4,2,0,73,75,3,18,
-  	9,0,74,72,1,0,0,0,74,73,1,0,0,0,75,76,1,0,0,0,76,74,1,0,0,0,76,77,1,0,
-  	0,0,77,78,1,0,0,0,78,79,5,0,0,1,79,3,1,0,0,0,80,83,3,8,4,0,81,83,3,14,
-  	7,0,82,80,1,0,0,0,82,81,1,0,0,0,83,5,1,0,0,0,84,85,7,0,0,0,85,7,1,0,0,
-  	0,86,87,5,1,0,0,87,88,3,6,3,0,88,93,3,10,5,0,89,90,5,43,0,0,90,92,3,10,
-  	5,0,91,89,1,0,0,0,92,95,1,0,0,0,93,91,1,0,0,0,93,94,1,0,0,0,94,96,1,0,
-  	0,0,95,93,1,0,0,0,96,97,5,44,0,0,97,9,1,0,0,0,98,105,5,14,0,0,99,100,
-  	5,41,0,0,100,101,3,68,34,0,101,102,5,42,0,0,102,104,1,0,0,0,103,99,1,
-  	0,0,0,104,107,1,0,0,0,105,103,1,0,0,0,105,106,1,0,0,0,106,108,1,0,0,0,
-  	107,105,1,0,0,0,108,109,5,28,0,0,109,110,3,12,6,0,110,11,1,0,0,0,111,
-  	125,3,38,19,0,112,121,5,39,0,0,113,118,3,12,6,0,114,115,5,43,0,0,115,
-  	117,3,12,6,0,116,114,1,0,0,0,117,120,1,0,0,0,118,116,1,0,0,0,118,119,
-  	1,0,0,0,119,122,1,0,0,0,120,118,1,0,0,0,121,113,1,0,0,0,121,122,1,0,0,
-  	0,122,123,1,0,0,0,123,125,5,40,0,0,124,111,1,0,0,0,124,112,1,0,0,0,125,
-  	13,1,0,0,0,126,127,3,6,3,0,127,132,3,16,8,0,128,129,5,43,0,0,129,131,
-  	3,16,8,0,130,128,1,0,0,0,131,134,1,0,0,0,132,130,1,0,0,0,132,133,1,0,
-  	0,0,133,135,1,0,0,0,134,132,1,0,0,0,135,136,5,44,0,0,136,15,1,0,0,0,137,
-  	144,5,14,0,0,138,139,5,41,0,0,139,140,3,68,34,0,140,141,5,42,0,0,141,
-  	143,1,0,0,0,142,138,1,0,0,0,143,146,1,0,0,0,144,142,1,0,0,0,144,145,1,
-  	0,0,0,145,149,1,0,0,0,146,144,1,0,0,0,147,148,5,28,0,0,148,150,3,12,6,
-  	0,149,147,1,0,0,0,149,150,1,0,0,0,150,17,1,0,0,0,151,152,3,20,10,0,152,
-  	153,5,14,0,0,153,155,5,37,0,0,154,156,3,22,11,0,155,154,1,0,0,0,155,156,
-  	1,0,0,0,156,157,1,0,0,0,157,158,5,38,0,0,158,159,3,26,13,0,159,19,1,0,
-  	0,0,160,163,3,6,3,0,161,163,5,7,0,0,162,160,1,0,0,0,162,161,1,0,0,0,163,
-  	21,1,0,0,0,164,169,3,24,12,0,165,166,5,43,0,0,166,168,3,24,12,0,167,165,
-  	1,0,0,0,168,171,1,0,0,0,169,167,1,0,0,0,169,170,1,0,0,0,170,23,1,0,0,
-  	0,171,169,1,0,0,0,172,173,3,6,3,0,173,188,5,14,0,0,174,176,5,41,0,0,175,
-  	177,3,68,34,0,176,175,1,0,0,0,176,177,1,0,0,0,177,178,1,0,0,0,178,185,
-  	5,42,0,0,179,180,5,41,0,0,180,181,3,68,34,0,181,182,5,42,0,0,182,184,
-  	1,0,0,0,183,179,1,0,0,0,184,187,1,0,0,0,185,183,1,0,0,0,185,186,1,0,0,
-  	0,186,189,1,0,0,0,187,185,1,0,0,0,188,174,1,0,0,0,188,189,1,0,0,0,189,
-  	25,1,0,0,0,190,194,5,39,0,0,191,193,3,28,14,0,192,191,1,0,0,0,193,196,
-  	1,0,0,0,194,192,1,0,0,0,194,195,1,0,0,0,195,197,1,0,0,0,196,194,1,0,0,
-  	0,197,198,5,40,0,0,198,27,1,0,0,0,199,202,3,4,2,0,200,202,3,30,15,0,201,
-  	199,1,0,0,0,201,200,1,0,0,0,202,29,1,0,0,0,203,204,3,36,18,0,204,205,
-  	5,28,0,0,205,206,3,32,16,0,206,207,5,44,0,0,207,238,1,0,0,0,208,238,3,
-  	26,13,0,209,210,5,8,0,0,210,211,5,37,0,0,211,212,3,34,17,0,212,213,5,
-  	38,0,0,213,216,3,30,15,0,214,215,5,9,0,0,215,217,3,30,15,0,216,214,1,
-  	0,0,0,216,217,1,0,0,0,217,238,1,0,0,0,218,219,5,10,0,0,219,220,5,37,0,
-  	0,220,221,3,34,17,0,221,222,5,38,0,0,222,223,3,30,15,0,223,238,1,0,0,
-  	0,224,225,5,11,0,0,225,238,5,44,0,0,226,227,5,12,0,0,227,238,5,44,0,0,
-  	228,230,5,13,0,0,229,231,3,32,16,0,230,229,1,0,0,0,230,231,1,0,0,0,231,
-  	232,1,0,0,0,232,238,5,44,0,0,233,235,3,32,16,0,234,233,1,0,0,0,234,235,
-  	1,0,0,0,235,236,1,0,0,0,236,238,5,44,0,0,237,203,1,0,0,0,237,208,1,0,
-  	0,0,237,209,1,0,0,0,237,218,1,0,0,0,237,224,1,0,0,0,237,226,1,0,0,0,237,
-  	228,1,0,0,0,237,234,1,0,0,0,238,31,1,0,0,0,239,240,3,52,26,0,240,33,1,
-  	0,0,0,241,242,3,66,33,0,242,35,1,0,0,0,243,250,5,14,0,0,244,245,5,41,
-  	0,0,245,246,3,32,16,0,246,247,5,42,0,0,247,249,1,0,0,0,248,244,1,0,0,
-  	0,249,252,1,0,0,0,250,248,1,0,0,0,250,251,1,0,0,0,251,37,1,0,0,0,252,
-  	250,1,0,0,0,253,258,3,68,34,0,254,258,5,18,0,0,255,258,5,19,0,0,256,258,
-  	5,20,0,0,257,253,1,0,0,0,257,254,1,0,0,0,257,255,1,0,0,0,257,256,1,0,
-  	0,0,258,39,1,0,0,0,259,264,3,32,16,0,260,261,5,43,0,0,261,263,3,32,16,
-  	0,262,260,1,0,0,0,263,266,1,0,0,0,264,262,1,0,0,0,264,265,1,0,0,0,265,
-  	41,1,0,0,0,266,264,1,0,0,0,267,268,5,37,0,0,268,269,3,32,16,0,269,270,
-  	5,38,0,0,270,283,1,0,0,0,271,278,5,14,0,0,272,273,5,41,0,0,273,274,3,
-  	32,16,0,274,275,5,42,0,0,275,277,1,0,0,0,276,272,1,0,0,0,277,280,1,0,
-  	0,0,278,276,1,0,0,0,278,279,1,0,0,0,279,283,1,0,0,0,280,278,1,0,0,0,281,
-  	283,3,38,19,0,282,267,1,0,0,0,282,271,1,0,0,0,282,281,1,0,0,0,283,43,
-  	1,0,0,0,284,295,3,42,21,0,285,286,3,46,23,0,286,287,3,44,22,0,287,295,
-  	1,0,0,0,288,289,5,14,0,0,289,291,5,37,0,0,290,292,3,40,20,0,291,290,1,
-  	0,0,0,291,292,1,0,0,0,292,293,1,0,0,0,293,295,5,38,0,0,294,284,1,0,0,
-  	0,294,285,1,0,0,0,294,288,1,0,0,0,295,45,1,0,0,0,296,297,7,1,0,0,297,
-  	47,1,0,0,0,298,304,3,44,22,0,299,300,3,50,25,0,300,301,3,44,22,0,301,
-  	303,1,0,0,0,302,299,1,0,0,0,303,306,1,0,0,0,304,302,1,0,0,0,304,305,1,
-  	0,0,0,305,49,1,0,0,0,306,304,1,0,0,0,307,308,7,2,0,0,308,51,1,0,0,0,309,
-  	315,3,48,24,0,310,311,3,54,27,0,311,312,3,48,24,0,312,314,1,0,0,0,313,
-  	310,1,0,0,0,314,317,1,0,0,0,315,313,1,0,0,0,315,316,1,0,0,0,316,53,1,
-  	0,0,0,317,315,1,0,0,0,318,319,7,3,0,0,319,55,1,0,0,0,320,324,3,52,26,
-  	0,321,322,3,58,29,0,322,323,3,52,26,0,323,325,1,0,0,0,324,321,1,0,0,0,
-  	324,325,1,0,0,0,325,57,1,0,0,0,326,327,7,4,0,0,327,59,1,0,0,0,328,332,
-  	3,56,28,0,329,330,3,62,31,0,330,331,3,56,28,0,331,333,1,0,0,0,332,329,
-  	1,0,0,0,332,333,1,0,0,0,333,61,1,0,0,0,334,335,7,5,0,0,335,63,1,0,0,0,
-  	336,341,3,60,30,0,337,338,5,35,0,0,338,340,3,60,30,0,339,337,1,0,0,0,
-  	340,343,1,0,0,0,341,339,1,0,0,0,341,342,1,0,0,0,342,65,1,0,0,0,343,341,
-  	1,0,0,0,344,349,3,64,32,0,345,346,5,36,0,0,346,348,3,64,32,0,347,345,
-  	1,0,0,0,348,351,1,0,0,0,349,347,1,0,0,0,349,350,1,0,0,0,350,67,1,0,0,
-  	0,351,349,1,0,0,0,352,353,7,6,0,0,353,69,1,0,0,0,36,74,76,82,93,105,118,
-  	121,124,132,144,149,155,162,169,176,185,188,194,201,216,230,234,237,250,
-  	257,264,278,282,291,294,304,315,324,332,341,349
+  	28,2,29,7,29,2,30,7,30,2,31,7,31,2,32,7,32,2,33,7,33,2,34,7,34,2,35,7,
+  	35,1,0,1,0,1,1,1,1,4,1,77,8,1,11,1,12,1,78,1,1,1,1,1,2,1,2,3,2,85,8,2,
+  	1,3,1,3,1,4,1,4,1,4,1,4,1,4,5,4,94,8,4,10,4,12,4,97,9,4,1,4,1,4,1,5,1,
+  	5,1,5,1,5,1,5,5,5,106,8,5,10,5,12,5,109,9,5,1,5,1,5,1,5,1,6,1,6,1,6,1,
+  	6,1,6,5,6,119,8,6,10,6,12,6,122,9,6,3,6,124,8,6,1,6,1,6,3,6,128,8,6,1,
+  	7,1,7,1,7,1,7,5,7,134,8,7,10,7,12,7,137,9,7,1,7,1,7,1,8,1,8,1,8,1,8,1,
+  	8,5,8,146,8,8,10,8,12,8,149,9,8,1,8,1,8,3,8,153,8,8,1,9,1,9,1,9,1,9,3,
+  	9,159,8,9,1,9,1,9,1,9,1,10,1,10,3,10,166,8,10,1,11,1,11,1,11,5,11,171,
+  	8,11,10,11,12,11,174,9,11,1,12,1,12,1,12,1,12,3,12,180,8,12,1,12,1,12,
+  	1,12,1,12,1,12,5,12,187,8,12,10,12,12,12,190,9,12,3,12,192,8,12,1,13,
+  	1,13,5,13,196,8,13,10,13,12,13,199,9,13,1,13,1,13,1,14,1,14,3,14,205,
+  	8,14,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,
+  	3,15,220,8,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,1,15,
+  	1,15,3,15,234,8,15,1,15,1,15,3,15,238,8,15,1,15,3,15,241,8,15,1,16,1,
+  	16,1,17,1,17,1,18,1,18,1,18,1,18,1,18,5,18,252,8,18,10,18,12,18,255,9,
+  	18,1,19,1,19,1,19,1,19,3,19,261,8,19,1,20,1,20,1,20,5,20,266,8,20,10,
+  	20,12,20,269,9,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,5,21,280,
+  	8,21,10,21,12,21,283,9,21,1,21,1,21,3,21,287,8,21,1,22,1,22,1,22,1,22,
+  	1,22,1,22,1,22,3,22,296,8,22,1,22,3,22,299,8,22,1,23,1,23,1,24,1,24,1,
+  	24,1,24,5,24,307,8,24,10,24,12,24,310,9,24,1,25,1,25,1,26,1,26,1,26,1,
+  	26,5,26,318,8,26,10,26,12,26,321,9,26,1,27,1,27,1,28,1,28,1,28,1,28,3,
+  	28,329,8,28,1,29,1,29,1,30,1,30,1,30,1,30,3,30,337,8,30,1,31,1,31,1,32,
+  	1,32,1,32,5,32,344,8,32,10,32,12,32,347,9,32,1,33,1,33,1,33,5,33,352,
+  	8,33,10,33,12,33,355,9,33,1,34,1,34,1,35,1,35,1,35,0,0,36,0,2,4,6,8,10,
+  	12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,
+  	58,60,62,64,66,68,70,0,8,1,0,2,6,1,0,24,26,1,0,27,29,1,0,24,25,1,0,33,
+  	36,1,0,31,32,1,0,17,19,1,0,14,15,372,0,72,1,0,0,0,2,76,1,0,0,0,4,84,1,
+  	0,0,0,6,86,1,0,0,0,8,88,1,0,0,0,10,100,1,0,0,0,12,127,1,0,0,0,14,129,
+  	1,0,0,0,16,140,1,0,0,0,18,154,1,0,0,0,20,165,1,0,0,0,22,167,1,0,0,0,24,
+  	175,1,0,0,0,26,193,1,0,0,0,28,204,1,0,0,0,30,240,1,0,0,0,32,242,1,0,0,
+  	0,34,244,1,0,0,0,36,246,1,0,0,0,38,260,1,0,0,0,40,262,1,0,0,0,42,286,
+  	1,0,0,0,44,298,1,0,0,0,46,300,1,0,0,0,48,302,1,0,0,0,50,311,1,0,0,0,52,
+  	313,1,0,0,0,54,322,1,0,0,0,56,324,1,0,0,0,58,330,1,0,0,0,60,332,1,0,0,
+  	0,62,338,1,0,0,0,64,340,1,0,0,0,66,348,1,0,0,0,68,356,1,0,0,0,70,358,
+  	1,0,0,0,72,73,3,2,1,0,73,1,1,0,0,0,74,77,3,4,2,0,75,77,3,18,9,0,76,74,
+  	1,0,0,0,76,75,1,0,0,0,77,78,1,0,0,0,78,76,1,0,0,0,78,79,1,0,0,0,79,80,
+  	1,0,0,0,80,81,5,0,0,1,81,3,1,0,0,0,82,85,3,8,4,0,83,85,3,14,7,0,84,82,
+  	1,0,0,0,84,83,1,0,0,0,85,5,1,0,0,0,86,87,7,0,0,0,87,7,1,0,0,0,88,89,5,
+  	1,0,0,89,90,3,6,3,0,90,95,3,10,5,0,91,92,5,45,0,0,92,94,3,10,5,0,93,91,
+  	1,0,0,0,94,97,1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,98,1,0,0,0,97,95,
+  	1,0,0,0,98,99,5,46,0,0,99,9,1,0,0,0,100,107,5,16,0,0,101,102,5,43,0,0,
+  	102,103,3,68,34,0,103,104,5,44,0,0,104,106,1,0,0,0,105,101,1,0,0,0,106,
+  	109,1,0,0,0,107,105,1,0,0,0,107,108,1,0,0,0,108,110,1,0,0,0,109,107,1,
+  	0,0,0,110,111,5,30,0,0,111,112,3,12,6,0,112,11,1,0,0,0,113,128,3,38,19,
+  	0,114,123,5,41,0,0,115,120,3,12,6,0,116,117,5,45,0,0,117,119,3,12,6,0,
+  	118,116,1,0,0,0,119,122,1,0,0,0,120,118,1,0,0,0,120,121,1,0,0,0,121,124,
+  	1,0,0,0,122,120,1,0,0,0,123,115,1,0,0,0,123,124,1,0,0,0,124,125,1,0,0,
+  	0,125,128,5,42,0,0,126,128,3,70,35,0,127,113,1,0,0,0,127,114,1,0,0,0,
+  	127,126,1,0,0,0,128,13,1,0,0,0,129,130,3,6,3,0,130,135,3,16,8,0,131,132,
+  	5,45,0,0,132,134,3,16,8,0,133,131,1,0,0,0,134,137,1,0,0,0,135,133,1,0,
+  	0,0,135,136,1,0,0,0,136,138,1,0,0,0,137,135,1,0,0,0,138,139,5,46,0,0,
+  	139,15,1,0,0,0,140,147,5,16,0,0,141,142,5,43,0,0,142,143,3,68,34,0,143,
+  	144,5,44,0,0,144,146,1,0,0,0,145,141,1,0,0,0,146,149,1,0,0,0,147,145,
+  	1,0,0,0,147,148,1,0,0,0,148,152,1,0,0,0,149,147,1,0,0,0,150,151,5,30,
+  	0,0,151,153,3,12,6,0,152,150,1,0,0,0,152,153,1,0,0,0,153,17,1,0,0,0,154,
+  	155,3,20,10,0,155,156,5,16,0,0,156,158,5,39,0,0,157,159,3,22,11,0,158,
+  	157,1,0,0,0,158,159,1,0,0,0,159,160,1,0,0,0,160,161,5,40,0,0,161,162,
+  	3,26,13,0,162,19,1,0,0,0,163,166,3,6,3,0,164,166,5,7,0,0,165,163,1,0,
+  	0,0,165,164,1,0,0,0,166,21,1,0,0,0,167,172,3,24,12,0,168,169,5,45,0,0,
+  	169,171,3,24,12,0,170,168,1,0,0,0,171,174,1,0,0,0,172,170,1,0,0,0,172,
+  	173,1,0,0,0,173,23,1,0,0,0,174,172,1,0,0,0,175,176,3,6,3,0,176,191,5,
+  	16,0,0,177,179,5,43,0,0,178,180,3,68,34,0,179,178,1,0,0,0,179,180,1,0,
+  	0,0,180,181,1,0,0,0,181,188,5,44,0,0,182,183,5,43,0,0,183,184,3,68,34,
+  	0,184,185,5,44,0,0,185,187,1,0,0,0,186,182,1,0,0,0,187,190,1,0,0,0,188,
+  	186,1,0,0,0,188,189,1,0,0,0,189,192,1,0,0,0,190,188,1,0,0,0,191,177,1,
+  	0,0,0,191,192,1,0,0,0,192,25,1,0,0,0,193,197,5,41,0,0,194,196,3,28,14,
+  	0,195,194,1,0,0,0,196,199,1,0,0,0,197,195,1,0,0,0,197,198,1,0,0,0,198,
+  	200,1,0,0,0,199,197,1,0,0,0,200,201,5,42,0,0,201,27,1,0,0,0,202,205,3,
+  	4,2,0,203,205,3,30,15,0,204,202,1,0,0,0,204,203,1,0,0,0,205,29,1,0,0,
+  	0,206,207,3,36,18,0,207,208,5,30,0,0,208,209,3,32,16,0,209,210,5,46,0,
+  	0,210,241,1,0,0,0,211,241,3,26,13,0,212,213,5,8,0,0,213,214,5,39,0,0,
+  	214,215,3,34,17,0,215,216,5,40,0,0,216,219,3,30,15,0,217,218,5,9,0,0,
+  	218,220,3,30,15,0,219,217,1,0,0,0,219,220,1,0,0,0,220,241,1,0,0,0,221,
+  	222,5,10,0,0,222,223,5,39,0,0,223,224,3,34,17,0,224,225,5,40,0,0,225,
+  	226,3,30,15,0,226,241,1,0,0,0,227,228,5,11,0,0,228,241,5,46,0,0,229,230,
+  	5,12,0,0,230,241,5,46,0,0,231,233,5,13,0,0,232,234,3,32,16,0,233,232,
+  	1,0,0,0,233,234,1,0,0,0,234,235,1,0,0,0,235,241,5,46,0,0,236,238,3,32,
+  	16,0,237,236,1,0,0,0,237,238,1,0,0,0,238,239,1,0,0,0,239,241,5,46,0,0,
+  	240,206,1,0,0,0,240,211,1,0,0,0,240,212,1,0,0,0,240,221,1,0,0,0,240,227,
+  	1,0,0,0,240,229,1,0,0,0,240,231,1,0,0,0,240,237,1,0,0,0,241,31,1,0,0,
+  	0,242,243,3,52,26,0,243,33,1,0,0,0,244,245,3,66,33,0,245,35,1,0,0,0,246,
+  	253,5,16,0,0,247,248,5,43,0,0,248,249,3,32,16,0,249,250,5,44,0,0,250,
+  	252,1,0,0,0,251,247,1,0,0,0,252,255,1,0,0,0,253,251,1,0,0,0,253,254,1,
+  	0,0,0,254,37,1,0,0,0,255,253,1,0,0,0,256,261,3,68,34,0,257,261,5,20,0,
+  	0,258,261,5,21,0,0,259,261,5,22,0,0,260,256,1,0,0,0,260,257,1,0,0,0,260,
+  	258,1,0,0,0,260,259,1,0,0,0,261,39,1,0,0,0,262,267,3,32,16,0,263,264,
+  	5,45,0,0,264,266,3,32,16,0,265,263,1,0,0,0,266,269,1,0,0,0,267,265,1,
+  	0,0,0,267,268,1,0,0,0,268,41,1,0,0,0,269,267,1,0,0,0,270,271,5,39,0,0,
+  	271,272,3,32,16,0,272,273,5,40,0,0,273,287,1,0,0,0,274,281,5,16,0,0,275,
+  	276,5,43,0,0,276,277,3,32,16,0,277,278,5,44,0,0,278,280,1,0,0,0,279,275,
+  	1,0,0,0,280,283,1,0,0,0,281,279,1,0,0,0,281,282,1,0,0,0,282,287,1,0,0,
+  	0,283,281,1,0,0,0,284,287,3,38,19,0,285,287,3,70,35,0,286,270,1,0,0,0,
+  	286,274,1,0,0,0,286,284,1,0,0,0,286,285,1,0,0,0,287,43,1,0,0,0,288,299,
+  	3,42,21,0,289,290,3,46,23,0,290,291,3,44,22,0,291,299,1,0,0,0,292,293,
+  	5,16,0,0,293,295,5,39,0,0,294,296,3,40,20,0,295,294,1,0,0,0,295,296,1,
+  	0,0,0,296,297,1,0,0,0,297,299,5,40,0,0,298,288,1,0,0,0,298,289,1,0,0,
+  	0,298,292,1,0,0,0,299,45,1,0,0,0,300,301,7,1,0,0,301,47,1,0,0,0,302,308,
+  	3,44,22,0,303,304,3,50,25,0,304,305,3,44,22,0,305,307,1,0,0,0,306,303,
+  	1,0,0,0,307,310,1,0,0,0,308,306,1,0,0,0,308,309,1,0,0,0,309,49,1,0,0,
+  	0,310,308,1,0,0,0,311,312,7,2,0,0,312,51,1,0,0,0,313,319,3,48,24,0,314,
+  	315,3,54,27,0,315,316,3,48,24,0,316,318,1,0,0,0,317,314,1,0,0,0,318,321,
+  	1,0,0,0,319,317,1,0,0,0,319,320,1,0,0,0,320,53,1,0,0,0,321,319,1,0,0,
+  	0,322,323,7,3,0,0,323,55,1,0,0,0,324,328,3,52,26,0,325,326,3,58,29,0,
+  	326,327,3,52,26,0,327,329,1,0,0,0,328,325,1,0,0,0,328,329,1,0,0,0,329,
+  	57,1,0,0,0,330,331,7,4,0,0,331,59,1,0,0,0,332,336,3,56,28,0,333,334,3,
+  	62,31,0,334,335,3,56,28,0,335,337,1,0,0,0,336,333,1,0,0,0,336,337,1,0,
+  	0,0,337,61,1,0,0,0,338,339,7,5,0,0,339,63,1,0,0,0,340,345,3,60,30,0,341,
+  	342,5,37,0,0,342,344,3,60,30,0,343,341,1,0,0,0,344,347,1,0,0,0,345,343,
+  	1,0,0,0,345,346,1,0,0,0,346,65,1,0,0,0,347,345,1,0,0,0,348,353,3,64,32,
+  	0,349,350,5,38,0,0,350,352,3,64,32,0,351,349,1,0,0,0,352,355,1,0,0,0,
+  	353,351,1,0,0,0,353,354,1,0,0,0,354,67,1,0,0,0,355,353,1,0,0,0,356,357,
+  	7,6,0,0,357,69,1,0,0,0,358,359,7,7,0,0,359,71,1,0,0,0,36,76,78,84,95,
+  	107,120,123,127,135,147,152,158,165,172,179,188,191,197,204,219,233,237,
+  	240,253,260,267,281,286,295,298,308,319,328,336,345,353
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -281,7 +284,7 @@ CactParser::ProgramContext* CactParser::program() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(70);
+    setState(72);
     compUnit();
    
   }
@@ -347,21 +350,21 @@ CactParser::CompUnitContext* CactParser::compUnit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(74); 
+    setState(76); 
     _errHandler->sync(this);
     _la = _input->LA(1);
     do {
-      setState(74);
+      setState(76);
       _errHandler->sync(this);
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 0, _ctx)) {
       case 1: {
-        setState(72);
+        setState(74);
         decl();
         break;
       }
 
       case 2: {
-        setState(73);
+        setState(75);
         funcDef();
         break;
       }
@@ -369,12 +372,12 @@ CactParser::CompUnitContext* CactParser::compUnit() {
       default:
         break;
       }
-      setState(76); 
+      setState(78); 
       _errHandler->sync(this);
       _la = _input->LA(1);
     } while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 254) != 0));
-    setState(78);
+    setState(80);
     match(CactParser::EOF);
    
   }
@@ -426,12 +429,12 @@ CactParser::DeclContext* CactParser::decl() {
     exitRule();
   });
   try {
-    setState(82);
+    setState(84);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::CONST_KW: {
         enterOuterAlt(_localctx, 1);
-        setState(80);
+        setState(82);
         constDecl();
         break;
       }
@@ -442,7 +445,7 @@ CactParser::DeclContext* CactParser::decl() {
       case CactParser::FLOAT_KW:
       case CactParser::BOOL_KW: {
         enterOuterAlt(_localctx, 2);
-        setState(81);
+        setState(83);
         varDecl();
         break;
       }
@@ -514,7 +517,7 @@ CactParser::BTypeContext* CactParser::bType() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(84);
+    setState(86);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 124) != 0))) {
@@ -596,25 +599,25 @@ CactParser::ConstDeclContext* CactParser::constDecl() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(86);
-    match(CactParser::CONST_KW);
-    setState(87);
-    bType();
     setState(88);
+    match(CactParser::CONST_KW);
+    setState(89);
+    bType();
+    setState(90);
     constDef();
-    setState(93);
+    setState(95);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::COMMA) {
-      setState(89);
+      setState(91);
       match(CactParser::COMMA);
-      setState(90);
+      setState(92);
       constDef();
-      setState(95);
+      setState(97);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(96);
+    setState(98);
     match(CactParser::SEMICOLON);
    
   }
@@ -696,25 +699,25 @@ CactParser::ConstDefContext* CactParser::constDef() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(98);
+    setState(100);
     match(CactParser::IDENT);
-    setState(105);
+    setState(107);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::L_BRACKET) {
-      setState(99);
-      match(CactParser::L_BRACKET);
-      setState(100);
-      intConst();
       setState(101);
+      match(CactParser::L_BRACKET);
+      setState(102);
+      intConst();
+      setState(103);
       match(CactParser::R_BRACKET);
-      setState(107);
+      setState(109);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(108);
+    setState(110);
     match(CactParser::ASSIGN);
-    setState(109);
+    setState(111);
     constInitVal();
    
   }
@@ -761,6 +764,10 @@ tree::TerminalNode* CactParser::ConstInitValContext::COMMA(size_t i) {
   return getToken(CactParser::COMMA, i);
 }
 
+CactParser::BoolConstContext* CactParser::ConstInitValContext::boolConst() {
+  return getRuleContext<CactParser::BoolConstContext>(0);
+}
+
 
 size_t CactParser::ConstInitValContext::getRuleIndex() const {
   return CactParser::RuleConstInitVal;
@@ -787,7 +794,7 @@ CactParser::ConstInitValContext* CactParser::constInitVal() {
     exitRule();
   });
   try {
-    setState(124);
+    setState(127);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::DECIMAL_CONST:
@@ -797,38 +804,46 @@ CactParser::ConstInitValContext* CactParser::constInitVal() {
       case CactParser::EXPONENT:
       case CactParser::CharConst: {
         enterOuterAlt(_localctx, 1);
-        setState(111);
+        setState(113);
         number();
         break;
       }
 
       case CactParser::L_BRACE: {
         enterOuterAlt(_localctx, 2);
-        setState(112);
+        setState(114);
         match(CactParser::L_BRACE);
-        setState(121);
+        setState(123);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if ((((_la & ~ 0x3fULL) == 0) &&
-          ((1ULL << _la) & 549757878272) != 0)) {
-          setState(113);
+          ((1ULL << _la) & 2199031562240) != 0)) {
+          setState(115);
           constInitVal();
-          setState(118);
+          setState(120);
           _errHandler->sync(this);
           _la = _input->LA(1);
           while (_la == CactParser::COMMA) {
-            setState(114);
+            setState(116);
             match(CactParser::COMMA);
-            setState(115);
+            setState(117);
             constInitVal();
-            setState(120);
+            setState(122);
             _errHandler->sync(this);
             _la = _input->LA(1);
           }
         }
-        setState(123);
+        setState(125);
         match(CactParser::R_BRACE);
+        break;
+      }
+
+      case CactParser::FALSE:
+      case CactParser::TRUE: {
+        enterOuterAlt(_localctx, 3);
+        setState(126);
+        boolConst();
         break;
       }
 
@@ -903,23 +918,23 @@ CactParser::VarDeclContext* CactParser::varDecl() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(126);
+    setState(129);
     bType();
-    setState(127);
+    setState(130);
     varDef();
-    setState(132);
+    setState(135);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::COMMA) {
-      setState(128);
+      setState(131);
       match(CactParser::COMMA);
-      setState(129);
+      setState(132);
       varDef();
-      setState(134);
+      setState(137);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(135);
+    setState(138);
     match(CactParser::SEMICOLON);
    
   }
@@ -1001,30 +1016,30 @@ CactParser::VarDefContext* CactParser::varDef() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(137);
+    setState(140);
     match(CactParser::IDENT);
-    setState(144);
+    setState(147);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::L_BRACKET) {
-      setState(138);
+      setState(141);
       match(CactParser::L_BRACKET);
-      setState(139);
+      setState(142);
       intConst();
-      setState(140);
+      setState(143);
       match(CactParser::R_BRACKET);
-      setState(146);
+      setState(149);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(149);
+    setState(152);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CactParser::ASSIGN) {
-      setState(147);
+      setState(150);
       match(CactParser::ASSIGN);
-      setState(148);
+      setState(151);
       constInitVal();
     }
    
@@ -1095,24 +1110,24 @@ CactParser::FuncDefContext* CactParser::funcDef() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(151);
+    setState(154);
     funcType();
-    setState(152);
-    match(CactParser::IDENT);
-    setState(153);
-    match(CactParser::L_PAREN);
     setState(155);
+    match(CactParser::IDENT);
+    setState(156);
+    match(CactParser::L_PAREN);
+    setState(158);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 124) != 0)) {
-      setState(154);
+      setState(157);
       funcFParams();
     }
-    setState(157);
+    setState(160);
     match(CactParser::R_PAREN);
-    setState(158);
+    setState(161);
     block();
    
   }
@@ -1164,7 +1179,7 @@ CactParser::FuncTypeContext* CactParser::funcType() {
     exitRule();
   });
   try {
-    setState(162);
+    setState(165);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::INT_KW:
@@ -1173,14 +1188,14 @@ CactParser::FuncTypeContext* CactParser::funcType() {
       case CactParser::FLOAT_KW:
       case CactParser::BOOL_KW: {
         enterOuterAlt(_localctx, 1);
-        setState(160);
+        setState(163);
         bType();
         break;
       }
 
       case CactParser::VOID_KW: {
         enterOuterAlt(_localctx, 2);
-        setState(161);
+        setState(164);
         match(CactParser::VOID_KW);
         break;
       }
@@ -1248,17 +1263,17 @@ CactParser::FuncFParamsContext* CactParser::funcFParams() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(164);
+    setState(167);
     funcFParam();
-    setState(169);
+    setState(172);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::COMMA) {
-      setState(165);
+      setState(168);
       match(CactParser::COMMA);
-      setState(166);
+      setState(169);
       funcFParam();
-      setState(171);
+      setState(174);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1338,39 +1353,39 @@ CactParser::FuncFParamContext* CactParser::funcFParam() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(172);
+    setState(175);
     bType();
-    setState(173);
+    setState(176);
     match(CactParser::IDENT);
-    setState(188);
+    setState(191);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CactParser::L_BRACKET) {
-      setState(174);
+      setState(177);
       match(CactParser::L_BRACKET);
-      setState(176);
+      setState(179);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & 229376) != 0)) {
-        setState(175);
+        ((1ULL << _la) & 917504) != 0)) {
+        setState(178);
         intConst();
       }
-      setState(178);
+      setState(181);
       match(CactParser::R_BRACKET);
-      setState(185);
+      setState(188);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CactParser::L_BRACKET) {
-        setState(179);
+        setState(182);
         match(CactParser::L_BRACKET);
-        setState(180);
+        setState(183);
         intConst();
-        setState(181);
+        setState(184);
         match(CactParser::R_BRACKET);
-        setState(187);
+        setState(190);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
@@ -1435,20 +1450,20 @@ CactParser::BlockContext* CactParser::block() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(190);
+    setState(193);
     match(CactParser::L_BRACE);
-    setState(194);
+    setState(197);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 18279412268414) != 0)) {
-      setState(191);
+      ((1ULL << _la) & 73117649075582) != 0)) {
+      setState(194);
       blockItem();
-      setState(196);
+      setState(199);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(197);
+    setState(200);
     match(CactParser::R_BRACE);
    
   }
@@ -1500,7 +1515,7 @@ CactParser::BlockItemContext* CactParser::blockItem() {
     exitRule();
   });
   try {
-    setState(201);
+    setState(204);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::CONST_KW:
@@ -1510,7 +1525,7 @@ CactParser::BlockItemContext* CactParser::blockItem() {
       case CactParser::FLOAT_KW:
       case CactParser::BOOL_KW: {
         enterOuterAlt(_localctx, 1);
-        setState(199);
+        setState(202);
         decl();
         break;
       }
@@ -1520,6 +1535,8 @@ CactParser::BlockItemContext* CactParser::blockItem() {
       case CactParser::BREAK_KW:
       case CactParser::CONTINUE_KW:
       case CactParser::RETURN_KW:
+      case CactParser::FALSE:
+      case CactParser::TRUE:
       case CactParser::IDENT:
       case CactParser::DECIMAL_CONST:
       case CactParser::OCTAL_CONST:
@@ -1534,7 +1551,7 @@ CactParser::BlockItemContext* CactParser::blockItem() {
       case CactParser::L_BRACE:
       case CactParser::SEMICOLON: {
         enterOuterAlt(_localctx, 2);
-        setState(200);
+        setState(203);
         stmt();
         break;
       }
@@ -1649,49 +1666,49 @@ CactParser::StmtContext* CactParser::stmt() {
     exitRule();
   });
   try {
-    setState(237);
+    setState(240);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 22, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(203);
-      lVal();
-      setState(204);
-      match(CactParser::ASSIGN);
-      setState(205);
-      exp();
       setState(206);
+      lVal();
+      setState(207);
+      match(CactParser::ASSIGN);
+      setState(208);
+      exp();
+      setState(209);
       match(CactParser::SEMICOLON);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(208);
+      setState(211);
       block();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(209);
-      match(CactParser::IF_KW);
-      setState(210);
-      match(CactParser::L_PAREN);
-      setState(211);
-      cond();
       setState(212);
-      match(CactParser::R_PAREN);
+      match(CactParser::IF_KW);
       setState(213);
-      stmt();
+      match(CactParser::L_PAREN);
+      setState(214);
+      cond();
+      setState(215);
+      match(CactParser::R_PAREN);
       setState(216);
+      stmt();
+      setState(219);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 19, _ctx)) {
       case 1: {
-        setState(214);
+        setState(217);
         match(CactParser::ELSE_KW);
-        setState(215);
+        setState(218);
         stmt();
         break;
       }
@@ -1704,67 +1721,67 @@ CactParser::StmtContext* CactParser::stmt() {
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(218);
-      match(CactParser::WHILE_KW);
-      setState(219);
-      match(CactParser::L_PAREN);
-      setState(220);
-      cond();
       setState(221);
-      match(CactParser::R_PAREN);
+      match(CactParser::WHILE_KW);
       setState(222);
+      match(CactParser::L_PAREN);
+      setState(223);
+      cond();
+      setState(224);
+      match(CactParser::R_PAREN);
+      setState(225);
       stmt();
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
-      setState(224);
+      setState(227);
       match(CactParser::BREAK_KW);
-      setState(225);
+      setState(228);
       match(CactParser::SEMICOLON);
       break;
     }
 
     case 6: {
       enterOuterAlt(_localctx, 6);
-      setState(226);
+      setState(229);
       match(CactParser::CONTINUE_KW);
-      setState(227);
+      setState(230);
       match(CactParser::SEMICOLON);
       break;
     }
 
     case 7: {
       enterOuterAlt(_localctx, 7);
-      setState(228);
+      setState(231);
       match(CactParser::RETURN_KW);
-      setState(230);
+      setState(233);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & 137470394368) != 0)) {
-        setState(229);
+        ((1ULL << _la) & 549881626624) != 0)) {
+        setState(232);
         exp();
       }
-      setState(232);
+      setState(235);
       match(CactParser::SEMICOLON);
       break;
     }
 
     case 8: {
       enterOuterAlt(_localctx, 8);
-      setState(234);
+      setState(237);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & 137470394368) != 0)) {
-        setState(233);
+        ((1ULL << _la) & 549881626624) != 0)) {
+        setState(236);
         exp();
       }
-      setState(236);
+      setState(239);
       match(CactParser::SEMICOLON);
       break;
     }
@@ -1819,7 +1836,7 @@ CactParser::ExpContext* CactParser::exp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(239);
+    setState(242);
     addExp();
    
   }
@@ -1868,7 +1885,7 @@ CactParser::CondContext* CactParser::cond() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(241);
+    setState(244);
     lOrExp();
    
   }
@@ -1942,19 +1959,19 @@ CactParser::LValContext* CactParser::lVal() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(243);
+    setState(246);
     match(CactParser::IDENT);
-    setState(250);
+    setState(253);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::L_BRACKET) {
-      setState(244);
+      setState(247);
       match(CactParser::L_BRACKET);
-      setState(245);
+      setState(248);
       exp();
-      setState(246);
+      setState(249);
       match(CactParser::R_BRACKET);
-      setState(252);
+      setState(255);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2016,35 +2033,35 @@ CactParser::NumberContext* CactParser::number() {
     exitRule();
   });
   try {
-    setState(257);
+    setState(260);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::DECIMAL_CONST:
       case CactParser::OCTAL_CONST:
       case CactParser::HEXADECIMAL_CONST: {
         enterOuterAlt(_localctx, 1);
-        setState(253);
+        setState(256);
         intConst();
         break;
       }
 
       case CactParser::FloatConst: {
         enterOuterAlt(_localctx, 2);
-        setState(254);
+        setState(257);
         match(CactParser::FloatConst);
         break;
       }
 
       case CactParser::EXPONENT: {
         enterOuterAlt(_localctx, 3);
-        setState(255);
+        setState(258);
         match(CactParser::EXPONENT);
         break;
       }
 
       case CactParser::CharConst: {
         enterOuterAlt(_localctx, 4);
-        setState(256);
+        setState(259);
         match(CactParser::CharConst);
         break;
       }
@@ -2112,17 +2129,17 @@ CactParser::FuncRParamsContext* CactParser::funcRParams() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(259);
+    setState(262);
     exp();
-    setState(264);
+    setState(267);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::COMMA) {
-      setState(260);
+      setState(263);
       match(CactParser::COMMA);
-      setState(261);
+      setState(264);
       exp();
-      setState(266);
+      setState(269);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2183,6 +2200,10 @@ CactParser::NumberContext* CactParser::PrimaryExpContext::number() {
   return getRuleContext<CactParser::NumberContext>(0);
 }
 
+CactParser::BoolConstContext* CactParser::PrimaryExpContext::boolConst() {
+  return getRuleContext<CactParser::BoolConstContext>(0);
+}
+
 
 size_t CactParser::PrimaryExpContext::getRuleIndex() const {
   return CactParser::RulePrimaryExp;
@@ -2209,35 +2230,35 @@ CactParser::PrimaryExpContext* CactParser::primaryExp() {
     exitRule();
   });
   try {
-    setState(282);
+    setState(286);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CactParser::L_PAREN: {
         enterOuterAlt(_localctx, 1);
-        setState(267);
+        setState(270);
         match(CactParser::L_PAREN);
-        setState(268);
+        setState(271);
         exp();
-        setState(269);
+        setState(272);
         match(CactParser::R_PAREN);
         break;
       }
 
       case CactParser::IDENT: {
         enterOuterAlt(_localctx, 2);
-        setState(271);
+        setState(274);
         match(CactParser::IDENT);
-        setState(278);
+        setState(281);
         _errHandler->sync(this);
         _la = _input->LA(1);
         while (_la == CactParser::L_BRACKET) {
-          setState(272);
+          setState(275);
           match(CactParser::L_BRACKET);
-          setState(273);
+          setState(276);
           exp();
-          setState(274);
+          setState(277);
           match(CactParser::R_BRACKET);
-          setState(280);
+          setState(283);
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
@@ -2251,8 +2272,16 @@ CactParser::PrimaryExpContext* CactParser::primaryExp() {
       case CactParser::EXPONENT:
       case CactParser::CharConst: {
         enterOuterAlt(_localctx, 3);
-        setState(281);
+        setState(284);
         number();
+        break;
+      }
+
+      case CactParser::FALSE:
+      case CactParser::TRUE: {
+        enterOuterAlt(_localctx, 4);
+        setState(285);
+        boolConst();
         break;
       }
 
@@ -2330,41 +2359,41 @@ CactParser::UnaryExpContext* CactParser::unaryExp() {
     exitRule();
   });
   try {
-    setState(294);
+    setState(298);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 29, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(284);
+      setState(288);
       primaryExp();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(285);
+      setState(289);
       unaryOp();
-      setState(286);
+      setState(290);
       unaryExp();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(288);
+      setState(292);
       match(CactParser::IDENT);
-      setState(289);
+      setState(293);
       match(CactParser::L_PAREN);
-      setState(291);
+      setState(295);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & 137470394368) != 0)) {
-        setState(290);
+        ((1ULL << _la) & 549881626624) != 0)) {
+        setState(294);
         funcRParams();
       }
-      setState(293);
+      setState(297);
       match(CactParser::R_PAREN);
       break;
     }
@@ -2428,10 +2457,10 @@ CactParser::UnaryOpContext* CactParser::unaryOp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(296);
+    setState(300);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 29360128) != 0))) {
+      ((1ULL << _la) & 117440512) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2498,18 +2527,18 @@ CactParser::MulExpContext* CactParser::mulExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(298);
+    setState(302);
     unaryExp();
-    setState(304);
+    setState(308);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 234881024) != 0)) {
-      setState(299);
+      ((1ULL << _la) & 939524096) != 0)) {
+      setState(303);
       mulOp();
-      setState(300);
+      setState(304);
       unaryExp();
-      setState(306);
+      setState(310);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2569,10 +2598,10 @@ CactParser::MulOpContext* CactParser::mulOp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(307);
+    setState(311);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 234881024) != 0))) {
+      ((1ULL << _la) & 939524096) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2639,19 +2668,19 @@ CactParser::AddExpContext* CactParser::addExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(309);
+    setState(313);
     mulExp();
-    setState(315);
+    setState(319);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::PLUS
 
     || _la == CactParser::MINUS) {
-      setState(310);
+      setState(314);
       addOp();
-      setState(311);
+      setState(315);
       mulExp();
-      setState(317);
+      setState(321);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -2707,7 +2736,7 @@ CactParser::AddOpContext* CactParser::addOp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(318);
+    setState(322);
     _la = _input->LA(1);
     if (!(_la == CactParser::PLUS
 
@@ -2774,17 +2803,17 @@ CactParser::RelExpContext* CactParser::relExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(320);
-    addExp();
     setState(324);
+    addExp();
+    setState(328);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 32212254720) != 0)) {
-      setState(321);
+      ((1ULL << _la) & 128849018880) != 0)) {
+      setState(325);
       relOp();
-      setState(322);
+      setState(326);
       addExp();
     }
    
@@ -2847,10 +2876,10 @@ CactParser::RelOpContext* CactParser::relOp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(326);
+    setState(330);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 32212254720) != 0))) {
+      ((1ULL << _la) & 128849018880) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2913,18 +2942,18 @@ CactParser::EqExpContext* CactParser::eqExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(328);
-    relExp();
     setState(332);
+    relExp();
+    setState(336);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CactParser::EQ
 
     || _la == CactParser::NEQ) {
-      setState(329);
+      setState(333);
       eqOp();
-      setState(330);
+      setState(334);
       relExp();
     }
    
@@ -2979,7 +3008,7 @@ CactParser::EqOpContext* CactParser::eqOp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(334);
+    setState(338);
     _la = _input->LA(1);
     if (!(_la == CactParser::EQ
 
@@ -3050,17 +3079,17 @@ CactParser::LAndExpContext* CactParser::lAndExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(336);
+    setState(340);
     eqExp();
-    setState(341);
+    setState(345);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::AND) {
-      setState(337);
+      setState(341);
       match(CactParser::AND);
-      setState(338);
+      setState(342);
       eqExp();
-      setState(343);
+      setState(347);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -3124,17 +3153,17 @@ CactParser::LOrExpContext* CactParser::lOrExp() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(344);
+    setState(348);
     lAndExp();
-    setState(349);
+    setState(353);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CactParser::OR) {
-      setState(345);
+      setState(349);
       match(CactParser::OR);
-      setState(346);
+      setState(350);
       lAndExp();
-      setState(351);
+      setState(355);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -3194,10 +3223,73 @@ CactParser::IntConstContext* CactParser::intConst() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(352);
+    setState(356);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 229376) != 0))) {
+      ((1ULL << _la) & 917504) != 0))) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- BoolConstContext ------------------------------------------------------------------
+
+CactParser::BoolConstContext::BoolConstContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* CactParser::BoolConstContext::TRUE() {
+  return getToken(CactParser::TRUE, 0);
+}
+
+tree::TerminalNode* CactParser::BoolConstContext::FALSE() {
+  return getToken(CactParser::FALSE, 0);
+}
+
+
+size_t CactParser::BoolConstContext::getRuleIndex() const {
+  return CactParser::RuleBoolConst;
+}
+
+
+std::any CactParser::BoolConstContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<CactVisitor*>(visitor))
+    return parserVisitor->visitBoolConst(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+CactParser::BoolConstContext* CactParser::boolConst() {
+  BoolConstContext *_localctx = _tracker.createInstance<BoolConstContext>(_ctx, getState());
+  enterRule(_localctx, 70, CactParser::RuleBoolConst);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(358);
+    _la = _input->LA(1);
+    if (!(_la == CactParser::FALSE
+
+    || _la == CactParser::TRUE)) {
     _errHandler->recoverInline(this);
     }
     else {
