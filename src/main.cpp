@@ -60,6 +60,12 @@ int main(int argc, const char *argv[]) {
         std::cerr << "Error opening file: " << argv[1] << std::endl;
         return 1;
     }
+    std::ofstream outstream;
+    outstream.open(argv[2]);
+    if (!outstream.is_open()) {
+        std::cerr << "Error opening output file: " << argv[2] << std::endl;
+        return 1;
+    }
 
     ANTLRInputStream         input(stream);
     CactLexer         lexer(&input);
@@ -82,7 +88,10 @@ int main(int argc, const char *argv[]) {
     printParseTreeAdvanced(tree, &parser);
 
     Analysis visitor;
-    visitor.visit(tree);
+    std::string ir = std::any_cast<std::string>(visitor.visit(tree));
+    outstream << ir;
+    outstream.close();
+    stream.close();
 
     return 0;
 }

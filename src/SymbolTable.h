@@ -60,9 +60,12 @@ public:
     ~SymbolTable();
 
     void define(const Symbol &symbol);
-    Symbol *lookup(const std::string &name, bool isFunction = false);
+    std::pair<Symbol *, bool>lookup(const std::string &name, bool isFunction = false);
     bool lookupInCurrentScope(const std::string &name, bool isFunction = false);
     SymbolTable *getParent();
+    bool isGlobal() const {
+        return parent == nullptr;
+    }
 
 private:
     std::unordered_map<std::string, Symbol> var_table;

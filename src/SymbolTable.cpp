@@ -43,25 +43,25 @@ void SymbolTable::define(const Symbol &symbol) {
 }
 
 
-Symbol *SymbolTable::lookup(const std::string &name, bool isFunction) {
+std::pair<Symbol *, bool> SymbolTable::lookup(const std::string &name, bool isFunction) {
     if (isFunction) {
         if (func_table.find(name) != func_table.end()) {
-            return &func_table[name];
+            return std::make_pair(&func_table[name], isGlobal());
         } else {
             if (parent) {
                 return parent->lookup(name, isFunction);
             } else {
-                return nullptr;
+                return std::make_pair(nullptr, false);
             }
         }
     } else {
         if (var_table.find(name) != var_table.end()) {
-            return &var_table[name];
+            return std::make_pair(&var_table[name], isGlobal());
         } else {
             if (parent) {
                 return parent->lookup(name, isFunction);
             } else {
-                return nullptr;
+                return std::make_pair(nullptr, false);
             }
         }
     }

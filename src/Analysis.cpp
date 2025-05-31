@@ -2,13 +2,7 @@
 using namespace std;
 std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
     visitCompUnit(context->compUnit());
-    std::fstream outFile("output.ll", std::ios::out);
-    if (!outFile.is_open()) {
-        std::cerr << "Error: Could not open output file!" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    outFile << llvmmodule.toString();
-    return 0;
+    return llvmmodule.toString();
 }
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
@@ -395,7 +389,8 @@ std::any Analysis::visitCond(CactParser::CondContext *context) {
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    Symbol *s = currentSymbolTable->lookup(ident);
+    auto sp = currentSymbolTable->lookup(ident);
+    Symbol *s = sp.first;
     if (s == nullptr) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
@@ -484,12 +479,12 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
-        Symbol *s = currentSymbolTable->lookup(ident);
-        if (s == nullptr) {
+        auto s = currentSymbolTable->lookup(ident);
+        if (s.first == nullptr) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (s->type.isArray()) {
+        if (s.first->type.isArray()) {
             std::vector<std::string> index;
             for (int i = 0; i < context->exp().size(); i++) {
                 auto exp = std::any_cast<pair<std::string, std::string>>(visitExp(context->exp(i)));
@@ -499,25 +494,25 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
                 }
                 index.push_back(exp.second);
             }
-            std::string ptr = newSSA("ptr");
+            std::string ptr = "%" + newSSA("ptr");
             std::stringstream ss;
-            ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
+            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "*" << (s.second ? "@" : "%") << ident;
             ss << ", i32 0"; // base address
             for (const auto &idx : index) {
                 ss << ", i32 " << idx; // add index
             }
             currentBlock->addInstruction(ss.str());
-            std::string load = newSSA("load");
+            std::string load = "%" + newSSA("load");
             ss.str("");
-            ss << "%" << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ptr;
+            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* %" << ptr;
             currentBlock->addInstruction(ss.str());
-            return std::make_pair(TypeToLLVM(s->type), load);
+            return std::make_pair(TypeToLLVM(s.first->type), load);
         } else {
-            std::string load = newSSA("load");
+            std::string load = "%" + newSSA("load");
             std::stringstream ss;
-            ss << "%" << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
+            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "*" << (s.second ? "@" : "%") << ident;
             currentBlock->addInstruction(ss.str());
-            return std::make_pair(TypeToLLVM(s->type), load);
+            return std::make_pair(TypeToLLVM(s.first->type), load);
         }
     } else if (context->number()) {
         return (visitNumber(context->number()));
@@ -531,9 +526,9 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             return visitUnaryExp(context->unaryExp());
         } else if (context->unaryOp()->MINUS()) {
             auto right = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp()));
-            std::string neg = newSSA("neg");
+            std::string neg = "%" + newSSA("neg");
             std::stringstream ss;
-            ss << "%" << neg << " = sub " << TypeToLLVM(VarType(currentBType)) << " 0, " << right.second;
+            ss << neg << " = sub " << TypeToLLVM(VarType(currentBType)) << " 0, " << right.second;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(right.first, neg);
         } else if (context->unaryOp()->NOT()) {
@@ -542,9 +537,9 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
                 std::cerr << "Error: Type mismatch in unary NOT! Expected i1, got " << right.first << std::endl;
                 exit(EXIT_FAILURE);
             }
-            std::string notssa = newSSA("not");
+            std::string notssa = "%" + newSSA("not");
             std::stringstream ss;
-            ss << "%" << notssa << " = icmp eq " << TypeToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
+            ss << notssa << " = icmp eq " << TypeToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
             currentBlock->addInstruction(ss.str());
             return std::make_pair("i1", notssa);
         } else {
@@ -554,25 +549,25 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
-        Symbol *s = currentSymbolTable->lookup(ident, true /*is function*/);
-        if (s == nullptr) {
+        auto s = currentSymbolTable->lookup(ident, true /*is function*/);
+        if (s.first == nullptr) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
         // call a function
-        std::string funcret = newSSA("ret");
+        std::string funcret = "%" + newSSA("ret");
         std::stringstream ss;
-        ss << "%" << funcret << " = call " << TypeToLLVM(VarType(currentBType)) << " @" << ident << "(";
+        ss << funcret << " = call " << TypeToLLVM(VarType(currentBType)) << " @" << ident << "(";
         if (context->funcRParams()) {
             std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
             ss << params;
         }
         ss << ")";
         currentBlock->addInstruction(ss.str());
-        if (s->type.baseType == BaseType::VOID) {
+        if (s.first->type.baseType == BaseType::VOID) {
             return std::make_pair("", funcret);
         } else {
-            return std::make_pair(TypeToLLVM(s->type), funcret);
+            return std::make_pair(TypeToLLVM(s.first->type), funcret);
         }
     } else {
         std::cerr << "Error: Unknown unary expression!" << std::endl;
@@ -590,21 +585,21 @@ std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
             std::cerr << "Error: Type mismatch in multiplication! Expected " << left.first << ", got " << right.first << std::endl;
             exit(EXIT_FAILURE);
         }
-        mul.second = newSSA("mul");
+        mul.second = "%" + newSSA("mul");
         std::stringstream ss;
         if (right.first == "i32") {
             if (context->mulOp(i - 1)->MUL()) {
-                ss << "%" << mul.second << " = mul " << left.first << " " << left.second << ", " << right.second;
+                ss << mul.second << " = mul " << left.first << " " << left.second << ", " << right.second;
             } else if (context->mulOp(i - 1)->DIV()) {
-                ss << "%" << mul.second << " = sdiv " << left.first << " " << left.second << ", " << right.second;
+                ss << mul.second << " = sdiv " << left.first << " " << left.second << ", " << right.second;
             } else if (context->mulOp(i - 1)->MOD()) {
-                ss << "%" << mul.second << " = srem " << left.first << " " << left.second << ", " << right.second;
+                ss << mul.second << " = srem " << left.first << " " << left.second << ", " << right.second;
             }
         } else if (right.first == "float") {
             if (context->mulOp(i - 1)->MUL()) {
-                ss << "%" << mul.second << " = fmul " << left.first << " " << left.second << ", " << right.second;
+                ss << mul.second << " = fmul " << left.first << " " << left.second << ", " << right.second;
             } else if (context->mulOp(i - 1)->DIV()) {
-                ss << "%" << mul.second << " = fdiv " << left.first << " " << left.second << ", " << right.second;
+                ss << mul.second << " = fdiv " << left.first << " " << left.second << ", " << right.second;
             }
         } else {
             std::cerr << "Error: Unknown type in multiplication!" << std::endl;
@@ -627,11 +622,11 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
             std::cerr << "Error: Type mismatch in addition! Expected " << sum.first << ", got " << right.first << std::endl;
             exit(EXIT_FAILURE);
         }
-        sum.second = newSSA("sum");
+        sum.second = "%" + newSSA("sum");
         if (context->addOp(i - 1)->PLUS()) {
-            ss << "%" << sum.second << " = add " << left.first << " " << left.second << ", " << right.second;
+            ss << sum.second << " = add " << left.first << " " << left.second << ", " << right.second;
         } else if (context->addOp(i - 1)->MINUS()) {
-            ss << "%" << sum.second << " = sub " << left.first << " " << left.second << ", " << right.second;
+            ss << sum.second << " = sub " << left.first << " " << left.second << ", " << right.second;
         }
         currentBlock->addInstruction(ss.str());
         left = sum;
