@@ -546,7 +546,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             auto right = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp()));
             std::string neg = "%" + newSSA("neg");
             std::stringstream ss;
-            ss << neg << " = sub " << TypeToLLVM(VarType(currentBType)) << " 0, " << right.second;
+            ss << neg << " = sub " << right.first << " 0, " << right.second;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(right.first, neg);
         } else if (context->unaryOp()->NOT()) {
@@ -557,9 +557,9 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             }
             std::string notssa = "%" + newSSA("not");
             std::stringstream ss;
-            ss << notssa << " = icmp eq " << TypeToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
+            ss << notssa << " = icmp eq " << right.first << " " << right.second << ", 0";
             currentBlock->addInstruction(ss.str());
-            return std::make_pair("i1", notssa);
+            return std::make_pair(std::string("i1"), notssa);
         } else {
             std::cerr << "Error: Unknown unary operator!" << std::endl;
             exit(EXIT_FAILURE);
@@ -575,7 +575,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         // call a function
         std::string funcret = "%" + newSSA("ret");
         std::stringstream ss;
-        ss << funcret << " = call " << TypeToLLVM(VarType(currentBType)) << " @" << ident << "(";
+        ss << funcret << " = call " << TypeToLLVM(s.first->type) << " @" << ident << "(";
         if (context->funcRParams()) {
             std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
             ss << params;
@@ -583,7 +583,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         ss << ")";
         currentBlock->addInstruction(ss.str());
         if (s.first->type.baseType == BaseType::VOID) {
-            return std::make_pair("", funcret);
+            return std::make_pair(std::string("void"), funcret);
         } else {
             return std::make_pair(TypeToLLVM(s.first->type), funcret);
         }
@@ -757,9 +757,9 @@ std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
 }
 std::any Analysis::visitBoolConst(CactParser::BoolConstContext *context) {
     if (context->TRUE()) {
-        return std::make_pair("i1", "1");
+        return std::pair<std::string, std::string>("i1", "1");
     } else if (context->FALSE()) {
-        return std::make_pair("i1", "0");
+        return std::pair<std::string, std::string>("i1", "0");
     } else {
         std::cerr << "Error: Unknown boolean constant!" << std::endl;
         exit(EXIT_FAILURE);
