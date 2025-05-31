@@ -7,14 +7,14 @@
 #include <variant>
 #include <SymbolTable.h>
 
-std::string CactToLLVM(const VarType &type);
-std::string CactBToLLVM(const BaseType &type);
+std::string TypeToLLVM(const VarType &type);
+std::string BTypeToLLVM(const BaseType &type);
 
 struct LLVMValue {
     std::string name;
-    std::string type;
+    VarType type;
 
-    LLVMValue(std::string name, std::string type) : name(name), type(type) {}
+    LLVMValue(std::string name, VarType type) : name(name), type(type) {}
 };
 
 class LLVMBasicBlock {

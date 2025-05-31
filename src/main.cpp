@@ -28,10 +28,38 @@ public:
         exit(EXIT_FAILURE);  // 错误发生时直接终止程序
     }
 };
-
+void printParseTreeAdvanced(antlr4::tree::ParseTree* node, CactParser* parser, 
+                           const std::string& prefix = "", bool isLast = true) {
+    if (!node) return;
+    
+    // 打印当前节点
+    std::cout << prefix;
+    std::cout << (isLast ? "└── " : "├── ");
+    
+    if (auto* ruleNode = dynamic_cast<antlr4::ParserRuleContext*>(node)) {
+        std::string ruleName = parser->getRuleNames()[ruleNode->getRuleIndex()];
+        std::cout << ruleName << std::endl;
+    } else if (auto* terminalNode = dynamic_cast<antlr4::tree::TerminalNode*>(node)) {
+        std::string text = terminalNode->getText();
+        std::cout << "\"" << text << "\"" << std::endl;
+    }
+    
+    // 准备子节点的前缀
+    std::string childPrefix = prefix + (isLast ? "    " : "│   ");
+    
+    // 递归打印子节点
+    for (size_t i = 0; i < node->children.size(); ++i) {
+        bool isLastChild = (i == node->children.size() - 1);
+        printParseTreeAdvanced(node->children[i], parser, childPrefix, isLastChild);
+    }
+}
 int main(int argc, const char *argv[]) {
     std::ifstream stream;
     stream.open(argv[1]);
+    if (!stream.is_open()) {
+        std::cerr << "Error opening file: " << argv[1] << std::endl;
+        return 1;
+    }
 
     ANTLRInputStream         input(stream);
     CactLexer         lexer(&input);
@@ -51,7 +79,7 @@ int main(int argc, const char *argv[]) {
 
     // === 打印语法树结构 ===
     std::cout << "==== Parse Tree ====" << std::endl;
-    std::cout << tree->toStringTree(&parser) << std::endl;
+    printParseTreeAdvanced(tree, &parser);
 
     Analysis visitor;
     visitor.visit(tree);

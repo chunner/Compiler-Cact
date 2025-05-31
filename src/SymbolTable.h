@@ -7,13 +7,15 @@
 #include <vector>
 
 enum class BaseType {
-    INT,
-    DOUBLE,
-    CHAR,
+    I1,
+    I8,
+    I32,
     FLOAT,
-    VOID,    // for function
-    BOOL
+    DOUBLE,
+    VOID
 };
+
+
 struct VarType {
     BaseType baseType;
     bool isConst = false;

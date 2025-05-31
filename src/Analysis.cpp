@@ -27,9 +27,9 @@ std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
 std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     // std::cout << "enter rule [bType]!" << "\t";
     // std::cout << "the type is: " << context->getText().c_str() << std::endl;
-    if (context->INT_KW()) return BaseType::INT;
+    if (context->INT_KW()) return BaseType::I32;
     if (context->DOUBLE_KW()) return BaseType::DOUBLE;
-    if (context->CHAR_KW()) return BaseType::CHAR;
+    if (context->CHAR_KW()) return BaseType::I8;
     if (context->FLOAT_KW()) return BaseType::FLOAT;
     std::cerr << "Error (visitBType): Unknown type!" << std::endl;
     exit(EXIT_FAILURE);
@@ -46,7 +46,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     for (const auto &it : context->intConst()) {
         dimSize.push_back(std::stoi(std::any_cast<std::string> (visitIntConst(it))));
     }
-    if (!dimSize.empty() && currentBType != BaseType::INT && currentBType != BaseType::FLOAT && currentBType != BaseType::CHAR) {
+    if (!dimSize.empty() && currentBType != BaseType::I32 && currentBType != BaseType::FLOAT && currentBType != BaseType::I8) {
         std::cerr << "Error: array must be of type INT, FLOAT or CHAR!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -54,45 +54,45 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     currentSymbolTable->define(Symbol(ident, currentT));
     // generate LLVM code
     if (isGlobal) {
-        std::pair<std::string, std::string> initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-        LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), initval.second + " " + initval.first, true /* is Const*/);
+        auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+        LLVMGlobalVar globalVar(ident, initval.first, initval.first + " " + initval.second, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << CactToLLVM(currentT);
+        ss << "%" << ident << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
-        std::pair<std::string, std::string> initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+        auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
         if (!dimSize.empty()) {
             std::string globalid = newSSA("__const." + ident);
-            LLVMGlobalVar globalVar(globalid, CactToLLVM(currentT), initval.second + " " + initval.first, true /* is Const*/);
+            LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, true /* is Const*/);
             llvmmodule.addGlobalVar(globalVar);
             std::string identcast = newSSA("cast." + ident);
-            ss << "%" << identcast << " = bitcast " << CactToLLVM(currentT) << "* " << "%" << ident << " to i8*";
+            ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ident << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
             std::string globalcast = newSSA("cast." + globalid);
-            ss << "%" << globalcast << " = bitcast " << CactToLLVM(currentT) << "* @" << globalid << " to i8*";
+            ss << "%" << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* @" << globalid << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
             ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
             currentBlock->addInstruction(ss.str());
         } else {
-            ss << "store " << initval.first << ", " << CactBToLLVM(currentBType) << "* %" << ident;
+            ss << "store " << initval.first << " " << initval.second << ", " << TypeToLLVM(currentBType) << "* %" << ident;
             currentBlock->addInstruction(ss.str());
         }
     }
 }
-// return {vartype value, arraytype}
+// return {value, type}
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
     if (context->number()) {
-        std::pair<std::string, std::string> num = std::any_cast<std::pair<std::string, std::string>>(visitNumber(context->number()));
-        std::string basellT = CactBToLLVM(currentBType);
+        auto num = std::any_cast<std::pair<std::string, std::string>>(visitNumber(context->number()));
+        std::string basellT = BTypeToLLVM(currentBType);
         if (num.first != basellT) {
             std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << num.second << std::endl;
             exit(EXIT_FAILURE);
         }
-        return std::make_pair(basellT + " " + num.second, basellT);
+        return std::make_pair(num.second, basellT);
     } else { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<std::pair<std::string, std::string>> initVals;
         for (const auto &it : context->constInitVal()) {
@@ -109,7 +109,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
             }
         }
         ss << "]";
-        return std::make_pair(ss.str(), arrayT);
+        return std::make_pair(arrayT, ss.str());
     }
 }
 std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
@@ -137,36 +137,36 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     // generate LLVM code
     if (isGlobal) {
         if (context->constInitVal()) {
-            std::pair<std::string, std::string> initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-            LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), initval.second + " " + initval.first, false /* not Const*/);
+            auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+            LLVMGlobalVar globalVar(ident, initval.first, initval.first + " " + initval.second, false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         } else {
-            LLVMGlobalVar globalVar(ident, CactToLLVM(currentT), "", false /* not Const*/);
+            LLVMGlobalVar globalVar(ident, TypeToLLVM(currentT), "", false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         }
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << CactToLLVM(currentT);
+        ss << "%" << ident << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
         if (context->constInitVal()) {
-            std::pair<std::string, std::string> initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+            auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
             if (!dimSize.empty()) {
                 std::string globalid = newSSA("__const." + ident);
-                LLVMGlobalVar globalVar(globalid, CactToLLVM(currentT), initval.second + " " + initval.first, false /* not Const*/);
+                LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, false /* not Const*/);
                 llvmmodule.addGlobalVar(globalVar);
                 std::string identcast = newSSA("cast." + ident);
-                ss << "%" << identcast << " = bitcast " << CactToLLVM(currentT) << "* " << "%" << ident << " to i8*";
+                ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ident << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
                 std::string globalcast = newSSA("cast." + globalid);
-                ss << "%" << globalcast << " = bitcast " << CactToLLVM(currentT) << "* @" << globalid << " to i8*";
+                ss << "%" << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* @" << globalid << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
                 ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());
             } else {
-                ss << "store " << initval.first << ", " << CactBToLLVM(currentBType) << "* %" << ident;
+                ss << "store " << initval.first << " " << initval.second << ", " << BTypeToLLVM(currentBType) << "* %" << ident;
                 currentBlock->addInstruction(ss.str());
             }
         }
@@ -189,7 +189,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     if (context->funcFParams()) {
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
     }
-    LLVMFunction *function = new LLVMFunction(ident, CactBToLLVM(retBT), parameters);
+    LLVMFunction *function = new LLVMFunction(ident, BTypeToLLVM(retBT), parameters);
     currentFunction = function;
     // visit the function body
     LLVMBasicBlock *block = new LLVMBasicBlock("entry");
@@ -197,6 +197,16 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     currentBlock = block;
     isGlobal = false;
     currentSymbolTable = new SymbolTable(currentSymbolTable);
+    /* load params */
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        std::stringstream ss;
+        ss << "%" << parameters[i].name << " = alloca " << TypeToLLVM(parameters[i].type);
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
+        ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* %" << parameters[i].name;
+        currentBlock->addInstruction(ss.str());
+        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type));
+    }
     visitBlock(context->block());
     // visit the body end
     isGlobal = true;
@@ -227,7 +237,7 @@ std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
         dimSize.push_back(std::stoi(std::any_cast<std::string>(visitIntConst(context->intConst(i)))));
     }
     VarType varT = VarType(baseT, false /*not Const*/, false /*not function*/, dimSize);
-    return LLVMValue(ident, CactToLLVM(varT));
+    return LLVMValue(ident, varT);
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
     for (const auto &it : context->blockItem()) {
@@ -357,7 +367,7 @@ std::any Analysis::visitExp(CactParser::ExpContext *context) {
 }
 
 std::any Analysis::visitCond(CactParser::CondContext *context) {
-    currentBType = BaseType::BOOL;
+    currentBType = BaseType::I1;
     return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
 }
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
@@ -380,21 +390,22 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         }
         std::string ptr = newSSA("ptr");
         std::stringstream ss;
-        ss << "%" << ptr << " = getelementptr inbounds " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+        ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
         ss << ", i32 0"; // base address
         for (const auto &idx : index) {
             ss << ", i32 " << idx; // add index
         }
         currentBlock->addInstruction(ss.str());
-        return std::make_pair(CactToLLVM(s->type), ptr);
+        return std::make_pair(TypeToLLVM(s->type), ptr);
     } else {
-        return std::make_pair(CactBToLLVM(s->type.baseType), ident);
+        return std::make_pair(BTypeToLLVM(s->type.baseType), ident);
     }
 }
 // return the (LLVM type,LLVM value)
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     if (context->intConst()) {
-        return std::make_pair("i32", visitIntConst(context->intConst()));
+        std::string intVal = std::any_cast<std::string>(visitIntConst(context->intConst()));
+        return std::pair<std::string, std::string>{"i32", intVal};
     } else if (context->FloatConst()) {
         std::string floatConst = context->FloatConst()->getText();
         if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
@@ -468,7 +479,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             }
             std::string ptr = newSSA("ptr");
             std::stringstream ss;
-            ss << "%" << ptr << " = getelementptr inbounds " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+            ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
             ss << ", i32 0"; // base address
             for (const auto &idx : index) {
                 ss << ", i32 " << idx; // add index
@@ -476,15 +487,15 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             currentBlock->addInstruction(ss.str());
             std::string load = newSSA("load");
             ss.str("");
-            ss << "%" << load << " = load " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ptr;
+            ss << "%" << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ptr;
             currentBlock->addInstruction(ss.str());
-            return std::make_pair(CactToLLVM(s->type), load);
+            return std::make_pair(TypeToLLVM(s->type), load);
         } else {
             std::string load = newSSA("load");
             std::stringstream ss;
-            ss << "%" << load << " = load " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+            ss << "%" << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
             currentBlock->addInstruction(ss.str());
-            return std::make_pair(CactToLLVM(s->type), load);
+            return std::make_pair(TypeToLLVM(s->type), load);
         }
     } else if (context->number()) {
         return (visitNumber(context->number()));
@@ -500,7 +511,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             auto right = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp()));
             std::string neg = newSSA("neg");
             std::stringstream ss;
-            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentBType)) << " 0, " << right.second;
+            ss << "%" << neg << " = sub " << TypeToLLVM(VarType(currentBType)) << " 0, " << right.second;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(right.first, neg);
         } else if (context->unaryOp()->NOT()) {
@@ -511,7 +522,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             }
             std::string notssa = newSSA("not");
             std::stringstream ss;
-            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
+            ss << "%" << notssa << " = icmp eq " << TypeToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
             currentBlock->addInstruction(ss.str());
             return std::make_pair("i1", notssa);
         } else {
@@ -529,7 +540,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         // call a function
         std::string funcret = newSSA("ret");
         std::stringstream ss;
-        ss << "%" << funcret << " = call " << CactToLLVM(VarType(currentBType)) << " @" << ident << "(";
+        ss << "%" << funcret << " = call " << TypeToLLVM(VarType(currentBType)) << " @" << ident << "(";
         if (context->funcRParams()) {
             std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
             ss << params;
@@ -539,7 +550,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         if (s->type.baseType == BaseType::VOID) {
             return std::make_pair("", funcret);
         } else {
-            return std::make_pair(CactToLLVM(s->type), funcret);
+            return std::make_pair(TypeToLLVM(s->type), funcret);
         }
     } else {
         std::cerr << "Error: Unknown unary expression!" << std::endl;

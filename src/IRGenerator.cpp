@@ -1,20 +1,23 @@
 #include "IRGenerator.h"
 
-std::string CactToLLVM(const VarType &type) {
+std::string TypeToLLVM(const VarType &type) {
     std::string llvmType;
 
     switch (type.baseType) {
-    case BaseType::INT:
-        llvmType = "i32";
+    case BaseType::I1:
+        llvmType = "i1";
         break;
-    case BaseType::DOUBLE:
-        llvmType = "double";
-        break;
-    case BaseType::CHAR:
+    case BaseType::I8:
         llvmType = "i8";
+        break;
+    case BaseType::I32:
+        llvmType = "i32";
         break;
     case BaseType::FLOAT:
         llvmType = "float";
+        break;
+    case BaseType::DOUBLE:
+        llvmType = "double";
         break;
     default:
         llvmType = "void";
@@ -32,16 +35,18 @@ std::string CactToLLVM(const VarType &type) {
     }
     return llvmType;
 }
-std::string CactBToLLVM(const BaseType &type) {
+std::string BTypeToLLVM(const BaseType &type) {
     switch (type) {
-    case BaseType::INT:
-        return "i32";
-    case BaseType::DOUBLE:
-        return "double";
-    case BaseType::CHAR:
+    case BaseType::I1:
+        return "i1";
+    case BaseType::I8:
         return "i8";
+    case BaseType::I32:
+        return "i32";
     case BaseType::FLOAT:
         return "float";
+    case BaseType::DOUBLE:
+        return "double";
     default:
         return "void";
     }
