@@ -54,15 +54,16 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         exit(EXIT_FAILURE);
     }
     VarType currentT = VarType(currentBType, true /*is Const*/, false /*not function*/, dimSize);
-    currentSymbolTable->define(Symbol(ident, currentT, newSSA(ident)));
+    std::string ssa = newSSA(ident);
+    currentSymbolTable->define(Symbol(ident, currentT, ssa));
     // generate LLVM code
     if (isGlobal) {
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-        LLVMGlobalVar globalVar(ident, initval.first, initval.first + " " + initval.second, true /* is Const*/);
+        LLVMGlobalVar globalVar(ssa, initval.first, initval.first + " " + initval.second, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << TypeToLLVM(currentT);
+        ss << "%" << ssa << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
@@ -71,7 +72,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
             LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, true /* is Const*/);
             llvmmodule.addGlobalVar(globalVar);
             std::string identcast = newSSA("cast." + ident);
-            ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ident << " to i8*";
+            ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
             std::string globalcast = newSSA("cast." + globalid);
@@ -81,7 +82,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
             ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
             currentBlock->addInstruction(ss.str());
         } else {
-            ss << "store " << initval.first << " " << initval.second << ", " << TypeToLLVM(currentBType) << "* %" << ident;
+            ss << "store " << initval.first << " " << initval.second << ", " << TypeToLLVM(currentBType) << "* %" << ssa;
             currentBlock->addInstruction(ss.str());
         }
     }
@@ -137,20 +138,21 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         dimSize.push_back(std::stoi(std::any_cast<std::string>(visitIntConst(it))));
     }
     VarType currentT = VarType(currentBType, false /*not Const*/, false /*not function*/, dimSize);
-    currentSymbolTable->define(Symbol(ident, currentT, newSSA(ident)));
+    std::string ssa = newSSA(ident);
+    currentSymbolTable->define(Symbol(ident, currentT, ssa));
     // generate LLVM code
     if (isGlobal) {
         if (context->constInitVal()) {
             auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-            LLVMGlobalVar globalVar(ident, initval.first, initval.first + " " + initval.second, false /* not Const*/);
+            LLVMGlobalVar globalVar(ssa, initval.first, initval.first + " " + initval.second, false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         } else {
-            LLVMGlobalVar globalVar(ident, TypeToLLVM(currentT), "", false /* not Const*/);
+            LLVMGlobalVar globalVar(ssa, TypeToLLVM(currentT), "", false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         }
     } else {
         std::stringstream ss;
-        ss << "%" << ident << " = alloca " << TypeToLLVM(currentT);
+        ss << "%" << ssa << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
         if (context->constInitVal()) {
@@ -160,7 +162,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, false /* not Const*/);
                 llvmmodule.addGlobalVar(globalVar);
                 std::string identcast = newSSA("cast." + ident);
-                ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ident << " to i8*";
+                ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
                 std::string globalcast = newSSA("cast." + globalid);
@@ -170,7 +172,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());
             } else {
-                ss << "store " << initval.first << " " << initval.second << ", " << BTypeToLLVM(currentBType) << "* %" << ident;
+                ss << "store " << initval.first << " " << initval.second << ", " << BTypeToLLVM(currentBType) << "* %" << ssa;
                 currentBlock->addInstruction(ss.str());
             }
         }
@@ -274,12 +276,12 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         ss << "store " << right.first << " " << right.second << ", " << left_ptr.first << "* " << left_ptr.second;
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
-        LLVMBasicBlock *block = new LLVMBasicBlock(newLabel("block"));
+        // LLVMBasicBlock *block = new LLVMBasicBlock(newLabel("block"));
         // LLVMBasicBlock *oldBlock = currentBlock;
-        currentBlock = block;
+        // currentBlock = block;
         currentSymbolTable = new SymbolTable(currentSymbolTable);
         visitBlock(context->block());
-        currentFunction->addBasicBlock(block);
+        // currentFunction->addBasicBlock(block);
         // currentBlock = oldBlock;
         currentSymbolTable = currentSymbolTable->getParent();
     } else if (context->IF_KW()) { // if (cond) stmt else stmt
@@ -325,6 +327,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         // cond
         LLVMBasicBlock *condBlock = new LLVMBasicBlock(condLabel);
         currentFunction->addBasicBlock(condBlock);
+        currentBlock->addInstruction("br label %" + condLabel);
         currentBlock = condBlock;
         std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
         std::stringstream ss;
@@ -510,13 +513,13 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             currentBlock->addInstruction(ss.str());
             std::string load = "%" + newSSA("load");
             ss.str("");
-            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* %" << ptr;
+            ss << load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* %" << ptr;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(TypeToLLVM(s.first->type), load);
         } else {
             std::string load = "%" + newSSA("load");
             std::stringstream ss;
-            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
+            ss << load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(TypeToLLVM(s.first->type), load);
         }
@@ -652,15 +655,15 @@ std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
             std::cerr << "Error: Type mismatch in relational expression! Expected " << left.first << ", got " << right.first << std::endl;
             exit(EXIT_FAILURE);
         }
-        rel.second = newSSA("rel");
+        rel.second = "%" + newSSA("rel");
         if (context->relOp()->LT()) {
-            currentBlock->addInstruction("%" + rel.second + " = icmp slt " + left.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(rel.second + " = icmp slt " + left.first + " " + left.second + ", " + right.second);
         } else if (context->relOp()->GT()) {
-            currentBlock->addInstruction("%" + rel.second + " = icmp sgt " + left.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(rel.second + " = icmp sgt " + left.first + " " + left.second + ", " + right.second);
         } else if (context->relOp()->GE()) {
-            currentBlock->addInstruction("%" + rel.second + " = icmp sge " + left.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(rel.second + " = icmp sge " + left.first + " " + left.second + ", " + right.second);
         } else if (context->relOp()->LE()) {
-            currentBlock->addInstruction("%" + rel.second + " = icmp sle " + left.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(rel.second + " = icmp sle " + left.first + " " + left.second + ", " + right.second);
         }
         rel.first = "i1";
         return rel;
@@ -679,11 +682,11 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
             std::cerr << "Error: Type mismatch in equality expression! Expected " << left.first << ", got " << right.first << std::endl;
             exit(EXIT_FAILURE);
         }
-        eq.second = newSSA("eq");
+        eq.second = "%" + newSSA("eq");
         if (context->eqOp()->EQ()) {
-            currentBlock->addInstruction("%" + eq.second + " = icmp eq " + eq.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(eq.second + " = icmp eq " + eq.first + " " + left.second + ", " + right.second);
         } else if (context->eqOp()->NEQ()) {
-            currentBlock->addInstruction("%" + eq.second + " = icmp ne " + eq.first + " " + left.second + ", " + right.second);
+            currentBlock->addInstruction(eq.second + " = icmp ne " + eq.first + " " + left.second + ", " + right.second);
         }
         eq.first = "i1";
         return eq;
@@ -708,8 +711,8 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
             std::cerr << "Error: Type mismatch in logical AND expression! Expected " << left.first << ", got " << right.first << std::endl;
             exit(EXIT_FAILURE);
         }
-        land.second = newSSA("land");
-        currentBlock->addInstruction("%" + land.second + " = and i1 " + left.second + ", " + right.second);
+        land.second = "%" + newSSA("land");
+        currentBlock->addInstruction(land.second + " = and i1 " + left.second + ", " + right.second);
     }
     return land;
 }
@@ -722,8 +725,8 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     auto lor = left;
     for (int i = 1; i < context->lAndExp().size(); i++) {
         auto right = std::any_cast<std::pair<std::string, std::string>>(visitLAndExp(context->lAndExp(i)));
-        lor.second = newSSA("lor");
-        currentBlock->addInstruction("%" + lor.second + " = or i1 " + left.second + ", " + right.second);
+        lor.second = "%" + newSSA("lor");
+        currentBlock->addInstruction(lor.second + " = or i1 " + left.second + ", " + right.second);
     }
     return lor;
 }
