@@ -54,7 +54,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         exit(EXIT_FAILURE);
     }
     VarType currentT = VarType(currentBType, true /*is Const*/, false /*not function*/, dimSize);
-    currentSymbolTable->define(Symbol(ident, currentT));
+    currentSymbolTable->define(Symbol(ident, currentT, newSSA(ident)));
     // generate LLVM code
     if (isGlobal) {
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
@@ -137,7 +137,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         dimSize.push_back(std::stoi(std::any_cast<std::string>(visitIntConst(it))));
     }
     VarType currentT = VarType(currentBType, false /*not Const*/, false /*not function*/, dimSize);
-    currentSymbolTable->define(Symbol(ident, currentT));
+    currentSymbolTable->define(Symbol(ident, currentT, newSSA(ident)));
     // generate LLVM code
     if (isGlobal) {
         if (context->constInitVal()) {
@@ -188,7 +188,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     }
     // add symbol to symbol table
     VarType retT = VarType(retBT, false /*not Const*/, true /*is Function*/);
-    currentSymbolTable->define(Symbol(ident, retT));
+    currentSymbolTable->define(Symbol(ident, retT, newSSA(ident)));
     // generate LLVM code
     std::vector<LLVMValue> parameters;
     if (context->funcFParams()) {
@@ -210,7 +210,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         ss.str("");
         ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* %" << parameters[i].name;
         currentBlock->addInstruction(ss.str());
-        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type));
+        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, newSSA(parameters[i].name)));
     }
     visitBlock(context->block());
     // visit the body end
@@ -383,8 +383,12 @@ std::any Analysis::visitExp(CactParser::ExpContext *context) {
 }
 
 std::any Analysis::visitCond(CactParser::CondContext *context) {
-    currentBType = BaseType::I1;
-    return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
+    auto exp = std::any_cast<std::pair<std::string, std::string>>(visitLOrExp(context->lOrExp()));
+    if (exp.first != "i1") {
+        std::cerr << "Error: Condition expression must be of type i1!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return exp.second;
 }
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
     std::string ident = context->IDENT()->getText();
@@ -395,6 +399,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
+    std::string identssa = s->ssa;
     if (s->type.isArray()) {
         std::vector<std::string> index;
         for (int i = 0; i < context->exp().size(); i++) {
@@ -407,7 +412,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         }
         std::string ptr = newSSA("ptr");
         std::stringstream ss;
-        ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << ident;
+        ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << identssa;
         ss << ", i32 0"; // base address
         for (const auto &idx : index) {
             ss << ", i32 " << idx; // add index
@@ -415,7 +420,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         currentBlock->addInstruction(ss.str());
         return std::make_pair(TypeToLLVM(s->type), ptr);
     } else {
-        return std::make_pair(BTypeToLLVM(s->type.baseType), ident);
+        return std::make_pair(BTypeToLLVM(s->type.baseType), "%" + identssa);
     }
 }
 // return the (LLVM type,LLVM value)
@@ -484,6 +489,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
+        std::string identssa = s.first->ssa;
         if (s.first->type.isArray()) {
             std::vector<std::string> index;
             for (int i = 0; i < context->exp().size(); i++) {
@@ -496,7 +502,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             }
             std::string ptr = "%" + newSSA("ptr");
             std::stringstream ss;
-            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "*" << (s.second ? "@" : "%") << ident;
+            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
             ss << ", i32 0"; // base address
             for (const auto &idx : index) {
                 ss << ", i32 " << idx; // add index
@@ -510,7 +516,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
         } else {
             std::string load = "%" + newSSA("load");
             std::stringstream ss;
-            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "*" << (s.second ? "@" : "%") << ident;
+            ss<< load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
             currentBlock->addInstruction(ss.str());
             return std::make_pair(TypeToLLVM(s.first->type), load);
         }
