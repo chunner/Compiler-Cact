@@ -3,10 +3,10 @@
 int VarType::getArraySize()const {
     int size;
     switch (baseType) {
-        case BaseType::INT:
+        case BaseType::I32:
             size = 4; 
             break;
-        case BaseType::CHAR:
+        case BaseType::I8:
             size = 1; 
             break;
         case BaseType::FLOAT:
