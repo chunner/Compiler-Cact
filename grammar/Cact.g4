@@ -44,7 +44,7 @@ funcRParams : exp (COMMA exp)*;
 
 // 8 primary level
 primaryExp  : L_PAREN exp R_PAREN 
-            | lVal
+            | IDENT (L_BRACKET exp R_BRACKET)*
             | number;
 
 unaryExp    : primaryExp

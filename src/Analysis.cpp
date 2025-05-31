@@ -1,4 +1,5 @@
 #include <Analysis.h>
+using namespace std;
 std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
     return visitCompUnit(context->compUnit());
 }
@@ -78,9 +79,13 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
 // return {vartype value, arraytype}
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
     if (context->number()) {
-        std::string num = std::any_cast<std::string>(visitNumber(context->number()));
+        std::pair<std::string, std::string> num = std::any_cast<std::pair<std::string, std::string>>(visitNumber(context->number()));
         std::string basellT = CactBToLLVM(currentBType);
-        return std::make_pair(basellT + " " + num, basellT);
+        if (num.first != basellT) {
+            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << num.second << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        return std::make_pair(basellT + " " + num.second, basellT);
     } else { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<std::pair<std::string, std::string>> initVals;
         for (const auto &it : context->constInitVal()) {
@@ -216,25 +221,23 @@ std::any Analysis::visitFuncFParam(CactParser::FuncFParamContext *context) {
     return LLVMValue(ident, CactToLLVM(varT));
 }
 std::any Analysis::visitBlock(CactParser::BlockContext *context) {
-    // std::cout << "enter rule [block]!" << std::endl;
-    // return visitChildren(context);
     for (const auto &it : context->blockItem()) {
         visitBlockItem(it);
     }
 }
 std::any Analysis::visitBlockItem(CactParser::BlockItemContext *context) {
-    // std::cout << "enter rule [blockItem]!" << std::endl;
-    return visitChildren(context);
+    visitChildren(context);
 }
 std::any Analysis::visitStmt(CactParser::StmtContext *context) {
-    // std::cout << "enter rule [stmt]!" << std::endl;
-    // return visitChildren(context);
     if (context->lVal()) {  // lva = exp;
-        std::string lval = std::any_cast<std::string> (visitLVal(context->lVal()));
-        std::string rval = std::any_cast<std::string> (visitExp(context->exp()));
+        auto left_ptr = std::any_cast<std::pair<std::string, std::string>>(visitLVal(context->lVal()));
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp()));
+        if (left_ptr.first != right.first) {
+            std::cerr << "Error: Type mismatch in assignment! Expected " << left_ptr.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
         std::stringstream ss;
-        VarType lvalType = VarType(currentBType, false /*not Const*/, false /*not function*/, std::vector<int>());
-        ss << "store " << CactToLLVM(lvalType) << " " << rval << ", " << CactToLLVM(lvalType) << "* %" << lval;
+        ss << "store " << right.first << " " << right.second << ", " << left_ptr.first << "* " << left_ptr.second;
         currentBlock->addInstruction(ss.str());
     } else if (context->block()) { // block
         LLVMBasicBlock block(newLabel("block"));
@@ -327,9 +330,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
     }
 }
 std::any Analysis::visitExp(CactParser::ExpContext *context) {
-    // std::cout << "enter rule [exp]!" << std::endl;
-    // return visitChildren(context);
-    return std::any_cast<std::string> (visitAddExp(context->addExp()));
+    return (visitAddExp(context->addExp()));
 }
 
 std::any Analysis::visitCond(CactParser::CondContext *context) {
@@ -338,9 +339,8 @@ std::any Analysis::visitCond(CactParser::CondContext *context) {
     currentBType = BaseType::BOOL;
     return std::any_cast<std::string>(visitLOrExp(context->lOrExp()));
 }
+// TODO
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
-    // std::cout << "enter rule [lVal]!" << std::endl;
-    // return visitChildren(context);
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
     Symbol *s = currentSymbolTable->lookup(ident);
@@ -348,39 +348,45 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
-    currentBType = s->type.baseType;
     if (s->type.isArray()) {
-        std::string tmpid = ident;
-        VarType tmpT = s->type;
+        std::vector<std::string> index;
         for (int i = 0; i < context->exp().size(); i++) {
-            std::string index = std::any_cast<std::string>(visitExp(context->exp(i)));
-            tmpid += index;
-            std::stringstream ss;
-            ss << "%" << ident << "_ptr" << " = " << "getelementptr inbounds " << CactToLLVM(tmpT) << ", " << CactToLLVM(tmpT) << "* %" << tmpid << ", " << "i32 0" << ", i32 " << index;
-            currentBlock->addInstruction(ss.str());
-            tmpT = VarType(tmpT.baseType, tmpT.isConst, tmpT.isFunction, std::vector<int>(tmpT.dimSizes.begin() + 1, tmpT.dimSizes.end()));
+            auto exp = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp(i)));
+            if (exp.first != "i32") {
+                std::cerr << "Error: Array index must be of type i32!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            index.push_back(exp.second);
         }
-        return tmpid + "_ptr";
+        std::string ptr = newSSA("ptr");
+        std::stringstream ss;
+        ss << "%" << ptr << " = getelementptr inbounds " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+        ss << ", i32 0"; // base address
+        for (const auto &idx : index) {
+            ss << ", i32 " << idx; // add index
+        }
+        currentBlock->addInstruction(ss.str());
+        return std::make_pair(CactToLLVM(s->type), ptr);
     } else {
-        return ident;
+        return std::make_pair(CactBToLLVM(s->type.baseType), ident);
     }
 }
-// return the LLVM IR for the integer constant
+// return the (LLVM type,LLVM value)
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     if (context->intConst()) {
-        return visitIntConst(context->intConst());
+        return std::make_pair("i32", visitIntConst(context->intConst()));
     } else if (context->FloatConst()) {
         std::string floatConst = context->FloatConst()->getText();
         if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
             floatConst.pop_back();
         }
-        return floatConst;
+        return std::make_pair("float", floatConst);
     } else if (context->EXPONENT()) {
         std::string exponent = context->EXPONENT()->getText();
         if (!exponent.empty() && (exponent.back() == 'f' || exponent.back() == 'F')) {
             exponent.pop_back();
         }
-        return exponent;
+        return std::make_pair("float", exponent);
     } else if (context->CharConst()) {
         std::string ch = context->CharConst()->getText();
         if (ch.size() == 3 && ch.front() == '\'' && ch.back() == '\'') {
@@ -398,7 +404,7 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
             case '\\': val = '\\'; break;
             default: std::cerr << "Error: Unknown escape character!" << std::endl; exit(EXIT_FAILURE);
             }
-            return std::to_string(val);
+            return std::make_pair("i8", std::to_string(val));
         } else {
             std::cerr << "Error: Invalid character constant!" << std::endl;
             exit(EXIT_FAILURE);
@@ -409,12 +415,10 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     }
 }
 std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
-    // std::cout << "enter rule [funcRParams]!" << std::endl;
-    // return visitChildren(context);
     std::stringstream ss;
     for (int i = 0; i < context->exp().size(); i++) {
-        std::string param = std::any_cast<std::string>(visitExp(context->exp(i)));
-        ss << param;
+        auto param = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp(i)));
+        ss << param.first << " " << param.second;
         if (i != context->exp().size() - 1) {
             ss << ", ";
         }
@@ -422,38 +426,74 @@ std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
     return ss.str();
 }
 std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
-    // std::cout << "enter rule [primaryExp]!" << std::endl;
-    // return visitChildren(context);
-    if (context->exp()) {
-        return std::any_cast<std::string>(visitExp(context->exp()));
-    } else if (context->lVal()) {
-        return std::any_cast<std::string>(visitLVal(context->lVal()));
+    if (context->L_PAREN()) {
+        return (visitExp(context->exp(0)));
+    } else if (context->IDENT()) {
+        std::string ident = context->IDENT()->getText();
+        // check if the identifier is already defined
+        Symbol *s = currentSymbolTable->lookup(ident);
+        if (s == nullptr) {
+            std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (s->type.isArray()) {
+            std::vector<std::string> index;
+            for (int i = 0; i < context->exp().size(); i++) {
+                auto exp = std::any_cast<pair<std::string, std::string>>(visitExp(context->exp(i)));
+                if (exp.first != "i32") {
+                    std::cerr << "Error: Array index must be of type i32!" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                index.push_back(exp.second);
+            }
+            std::string ptr = newSSA("ptr");
+            std::stringstream ss;
+            ss << "%" << ptr << " = getelementptr inbounds " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+            ss << ", i32 0"; // base address
+            for (const auto &idx : index) {
+                ss << ", i32 " << idx; // add index
+            }
+            currentBlock->addInstruction(ss.str());
+            std::string load = newSSA("load");
+            ss.str("");
+            ss << "%" << load << " = load " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ptr;
+            currentBlock->addInstruction(ss.str());
+            return std::make_pair(CactToLLVM(s->type), load);
+        } else {
+            std::string load = newSSA("load");
+            std::stringstream ss;
+            ss << "%" << load << " = load " << CactToLLVM(s->type) << ", " << CactToLLVM(s->type) << "* %" << ident;
+            currentBlock->addInstruction(ss.str());
+            return std::make_pair(CactToLLVM(s->type), load);
+        }
     } else if (context->number()) {
-        return std::any_cast<std::string>(visitNumber(context->number()));
+        return (visitNumber(context->number()));
     }
 }
 std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
-    // std::cout << "enter rule [unaryExp]!" << std::endl;
-    // return visitChildren(context);
     if (context->primaryExp()) {
-        return std::any_cast<std::string>(visitPrimaryExp(context->primaryExp()));
-    } else if (context->unaryOp() && context->unaryExp()) {
+        return visitPrimaryExp(context->primaryExp());
+    } else if (context->unaryOp() && context->unaryExp()) { // unaryOp unaryExp
         if (context->unaryOp()->PLUS()) {
-            return std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+            return visitUnaryExp(context->unaryExp());
         } else if (context->unaryOp()->MINUS()) {
-            std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+            auto right = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp()));
             std::string neg = newSSA("neg");
             std::stringstream ss;
-            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentBType)) << " 0, " << right;
+            ss << "%" << neg << " = sub " << CactToLLVM(VarType(currentBType)) << " 0, " << right.second;
             currentBlock->addInstruction(ss.str());
-            return neg;
+            return std::make_pair(right.first, neg);
         } else if (context->unaryOp()->NOT()) {
-            std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp()));
+            auto right = std::any_cast<std::pair<std::string, std::string>> (visitUnaryExp(context->unaryExp()));
+            if (right.first != "i1") {
+                std::cerr << "Error: Type mismatch in unary NOT! Expected i1, got " << right.first << std::endl;
+                exit(EXIT_FAILURE);
+            }
             std::string notssa = newSSA("not");
             std::stringstream ss;
-            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentBType)) << " " << right << ", 0";
+            ss << "%" << notssa << " = icmp eq " << CactToLLVM(VarType(currentBType)) << " " << right.second << ", 0";
             currentBlock->addInstruction(ss.str());
-            return notssa;
+            return std::make_pair("i1", notssa);
         } else {
             std::cerr << "Error: Unknown unary operator!" << std::endl;
             exit(EXIT_FAILURE);
@@ -466,7 +506,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
-        // TODO : call a function
+        // call a function
         std::string funcret = newSSA("ret");
         std::stringstream ss;
         ss << "%" << funcret << " = call " << CactToLLVM(VarType(currentBType)) << " @" << ident << "(";
@@ -476,7 +516,11 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
         }
         ss << ")";
         currentBlock->addInstruction(ss.str());
-        return funcret;
+        if (s->type.baseType == BaseType::VOID) {
+            return std::make_pair("", funcret);
+        } else {
+            return std::make_pair(CactToLLVM(s->type), funcret);
+        }
     } else {
         std::cerr << "Error: Unknown unary expression!" << std::endl;
         exit(EXIT_FAILURE);
@@ -486,58 +530,65 @@ std::any Analysis::visitUnaryOp(CactParser::UnaryOpContext *context) {
     return;
 }
 std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
-    // std::cout << "enter rule [mulExp]!" << std::endl;
-    // return visitChildren(context);
-    std::string left = std::any_cast<std::string>(visitUnaryExp(context->unaryExp(0)));
-    std::stringstream ss;
-    std::string mul = left;
+    auto left = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp(0)));
+    auto mul = left;
     for (int i = 1; i < context->unaryExp().size(); i++) {
-        std::string right = std::any_cast<std::string>(visitUnaryExp(context->unaryExp(i)));
-        mul = newSSA("mul");
-        if (context->mulOp(i - 1)->MUL()) {
-            ss << "%" << mul << " = mul " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
-        } else if (context->mulOp(i - 1)->DIV()) {
-            ss << "%" << mul << " = sdiv " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
-        } else if (context->mulOp(i - 1)->MOD()) {
-            ss << "%" << mul << " = srem " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitUnaryExp(context->unaryExp(i))); // "llvmtype, llvmvalue"
+        if (right.first != left.first) {
+            std::cerr << "Error: Type mismatch in multiplication! Expected " << left.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        mul.second = newSSA("mul");
+        std::stringstream ss;
+        if (right.first == "i32") {
+            if (context->mulOp(i - 1)->MUL()) {
+                ss << "%" << mul.second << " = mul " << left.first << " " << left.second << ", " << right.second;
+            } else if (context->mulOp(i - 1)->DIV()) {
+                ss << "%" << mul.second << " = sdiv " << left.first << " " << left.second << ", " << right.second;
+            } else if (context->mulOp(i - 1)->MOD()) {
+                ss << "%" << mul.second << " = srem " << left.first << " " << left.second << ", " << right.second;
+            }
+        } else if (right.first == "float") {
+            if (context->mulOp(i - 1)->MUL()) {
+                ss << "%" << mul.second << " = fmul " << left.first << " " << left.second << ", " << right.second;
+            } else if (context->mulOp(i - 1)->DIV()) {
+                ss << "%" << mul.second << " = fdiv " << left.first << " " << left.second << ", " << right.second;
+            }
+        } else {
+            std::cerr << "Error: Unknown type in multiplication!" << std::endl;
+            exit(EXIT_FAILURE);
         }
         currentBlock->addInstruction(ss.str());
-        ss.str("");
         left = mul;
     }
     return mul;
 }
 std::any Analysis::visitMulOp(CactParser::MulOpContext *context) {
-    std::cout << "enter rule [mulOp]!" << std::endl;
-    return visitChildren(context);
 }
 std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
-    // std::cout << "enter rule [addExp]!" << std::endl;
-    // return visitChildren(context);
-    std::stringstream ss;
-    std::string left = std::any_cast<std::string>(visitMulExp(context->mulExp(0)));
-    std::string sum = left;
+    auto left = std::any_cast<std::pair<std::string, std::string>>(visitMulExp(context->mulExp(0)));
+    auto sum = left;
     for (int i = 1; i < context->mulExp().size(); i++) {
-        std::string right = std::any_cast<std::string>(visitMulExp(context->mulExp(i)));
-        sum = newSSA("sum");
+        std::stringstream ss;
+        auto right = std::any_cast<std::pair<std::string, std::string>>(visitMulExp(context->mulExp(i))); // "llvmtype, llvmvalue"
+        if (right.first != sum.first) {
+            std::cerr << "Error: Type mismatch in addition! Expected " << sum.first << ", got " << right.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        sum.second = newSSA("sum");
         if (context->addOp(i - 1)->PLUS()) {
-            ss << "%" << sum << " = add " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
+            ss << "%" << sum.second << " = add " << left.first << " " << left.second << ", " << right.second;
         } else if (context->addOp(i - 1)->MINUS()) {
-            ss << "%" << sum << " = sub " << CactToLLVM(VarType(currentBType)) << " " << left << ", " << right;
+            ss << "%" << sum.second << " = sub " << left.first << " " << left.second << ", " << right.second;
         }
         currentBlock->addInstruction(ss.str());
-        ss.str("");
         left = sum;
     }
     return sum;
 }
 std::any Analysis::visitAddOp(CactParser::AddOpContext *context) {
-    std::cout << "enter rule [addOp]!" << std::endl;
-    return visitChildren(context);
 }
 std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
-    // std::cout << "enter rule [relExp]!" << std::endl;
-    // return visitChildren(context);
     std::string left = std::any_cast<std::string>(visitAddExp(context->addExp(0)));
     std::string rel = left;
     if (context->addExp().size() == 1) {
