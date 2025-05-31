@@ -1,0 +1,35 @@
+int fool(int x, int y){
+    return x + y;
+}
+int main(){
+//    int id[2][3];
+//    id[1][2] = 2;
+//   int f [3][3];
+//    int i = 2;
+//    int j = 1;
+//    int v = 3;
+//    b[i][j] = v + i; 
+//    float x = 3.0;
+//    float y = 4.0;
+//    float z = x + y;
+//    int a = 1;
+//    int b = 2; 
+//    int c = a + b + 3;
+//    int d = f[2][1];
+//    if (!(a == 1)){
+//        a = 1;
+//    }
+    int x = 1;
+    int y = 2;
+    if (x == 1){
+        int c = 1;
+    }else{
+        x = 3;
+    }
+    if (x == 3) {
+        y = 2;
+    }
+    if (x >= 3){
+        x = 3;
+    }
+}
