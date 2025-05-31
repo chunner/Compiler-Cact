@@ -3,7 +3,7 @@
 ## using antlr4 to generate files from grammar file
 
 ```bash
-java -jar ../deps/antlr-4.13.1-complete.jar -Dlanguage=Cpp CACT.g4 -visitor -no-listener
+java -jar ../deps/antlr-4.13.1-complete.jar -Dlanguage=Cpp Cact.g4 -visitor -no-listener
 ```
 
 ## compile the cmake project

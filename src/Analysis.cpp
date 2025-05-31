@@ -28,12 +28,11 @@ std::any Analysis::visitConstDecl(CactParser::ConstDeclContext *context) {
     return 0;
 }
 std::any Analysis::visitBType(CactParser::BTypeContext *context) {
-    // std::cout << "enter rule [bType]!" << "\t";
-    // std::cout << "the type is: " << context->getText().c_str() << std::endl;
     if (context->INT_KW()) return BaseType::I32;
     if (context->DOUBLE_KW()) return BaseType::DOUBLE;
     if (context->CHAR_KW()) return BaseType::I8;
     if (context->FLOAT_KW()) return BaseType::FLOAT;
+    if (context->BOOL_KW()) return BaseType::I1;
     std::cerr << "Error (visitBType): Unknown type!" << std::endl;
     exit(EXIT_FAILURE);
 }
@@ -413,9 +412,9 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
             }
             index.push_back(exp.second);
         }
-        std::string ptr = newSSA("ptr");
+        std::string ptr = "%" + newSSA("ptr");
         std::stringstream ss;
-        ss << "%" << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* %" << identssa;
+        ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << (sp.second ? "@" : "%") << identssa;
         ss << ", i32 0"; // base address
         for (const auto &idx : index) {
             ss << ", i32 " << idx; // add index
@@ -423,7 +422,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         currentBlock->addInstruction(ss.str());
         return std::make_pair(TypeToLLVM(s->type), ptr);
     } else {
-        return std::make_pair(BTypeToLLVM(s->type.baseType), "%" + identssa);
+        return std::make_pair(BTypeToLLVM(s->type.baseType), (sp.second ? "@" : "%") + identssa);
     }
 }
 // return the (LLVM type,LLVM value)

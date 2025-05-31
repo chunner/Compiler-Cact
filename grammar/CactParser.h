@@ -16,14 +16,14 @@ class  CactParser : public antlr4::Parser {
 public:
   enum {
     CONST_KW = 1, INT_KW = 2, DOUBLE_KW = 3, CHAR_KW = 4, FLOAT_KW = 5, 
-    VOID_KW = 6, IF_KW = 7, ELSE_KW = 8, WHILE_KW = 9, BREAK_KW = 10, CONTINUE_KW = 11, 
-    RETURN_KW = 12, IDENT = 13, DECIMAL_CONST = 14, OCTAL_CONST = 15, HEXADECIMAL_CONST = 16, 
-    FloatConst = 17, EXPONENT = 18, CharConst = 19, STRING = 20, PLUS = 21, 
-    MINUS = 22, NOT = 23, MUL = 24, DIV = 25, MOD = 26, ASSIGN = 27, EQ = 28, 
-    NEQ = 29, GT = 30, LT = 31, GE = 32, LE = 33, AND = 34, OR = 35, L_PAREN = 36, 
-    R_PAREN = 37, L_BRACE = 38, R_BRACE = 39, L_BRACKET = 40, R_BRACKET = 41, 
-    COMMA = 42, SEMICOLON = 43, DOUBLE_QUOTE = 44, WS = 45, LineComment = 46, 
-    BlockComment = 47
+    BOOL_KW = 6, VOID_KW = 7, IF_KW = 8, ELSE_KW = 9, WHILE_KW = 10, BREAK_KW = 11, 
+    CONTINUE_KW = 12, RETURN_KW = 13, IDENT = 14, DECIMAL_CONST = 15, OCTAL_CONST = 16, 
+    HEXADECIMAL_CONST = 17, FloatConst = 18, EXPONENT = 19, CharConst = 20, 
+    STRING = 21, PLUS = 22, MINUS = 23, NOT = 24, MUL = 25, DIV = 26, MOD = 27, 
+    ASSIGN = 28, EQ = 29, NEQ = 30, GT = 31, LT = 32, GE = 33, LE = 34, 
+    AND = 35, OR = 36, L_PAREN = 37, R_PAREN = 38, L_BRACE = 39, R_BRACE = 40, 
+    L_BRACKET = 41, R_BRACKET = 42, COMMA = 43, SEMICOLON = 44, DOUBLE_QUOTE = 45, 
+    WS = 46, LineComment = 47, BlockComment = 48
   };
 
   enum {
@@ -142,6 +142,7 @@ public:
     antlr4::tree::TerminalNode *DOUBLE_KW();
     antlr4::tree::TerminalNode *CHAR_KW();
     antlr4::tree::TerminalNode *FLOAT_KW();
+    antlr4::tree::TerminalNode *BOOL_KW();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

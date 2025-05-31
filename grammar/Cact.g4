@@ -9,7 +9,7 @@ program     : compUnit;
 compUnit    : (decl | funcDef)+ EOF;
 // Decl
 decl        : constDecl | varDecl;
-bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW;
+bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW | BOOL_KW;
 
 constDecl   : CONST_KW bType constDef (COMMA constDef)* SEMICOLON;// const int id1[1][2] = 1, id2 = 2, id3[1] = {1,2};
 constDef    : IDENT (L_BRACKET intConst R_BRACKET)* ASSIGN constInitVal;
@@ -84,6 +84,7 @@ INT_KW      : 'int';
 DOUBLE_KW   : 'double';
 CHAR_KW     : 'char';
 FLOAT_KW    : 'float';
+BOOL_KW     : 'bool';
 VOID_KW     : 'void'; 
 IF_KW       : 'if';
 ELSE_KW     : 'else';
