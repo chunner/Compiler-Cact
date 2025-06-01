@@ -98,7 +98,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
             exit(EXIT_FAILURE);
         }
         return std::make_pair(basellT, num.second); // return {type, value}
-    } else if (context->L_BRACE()){ // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
+    } else if (context->L_BRACE()) { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<std::pair<std::string, std::string>> initVals;
         for (const auto &it : context->constInitVal()) {
             initVals.push_back(std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(it)));
@@ -578,9 +578,15 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             exit(EXIT_FAILURE);
         }
         // call a function
-        std::string funcret = "%" + newSSA("ret");
         std::stringstream ss;
-        ss << funcret << " = call " << TypeToLLVM(s.first->type) << " @" << ident << "(";
+        std::string funcret;
+        if (s.first->type.baseType == BaseType::VOID) {
+            funcret = "";
+            ss << "call void @" << ident << "(";
+        } else {
+            funcret = "%" + newSSA("ret");
+            ss << funcret << " = call " << TypeToLLVM(s.first->type) << " @" << ident << "(";
+        }
         if (context->funcRParams()) {
             std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
             ss << params;
