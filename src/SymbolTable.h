@@ -47,10 +47,14 @@ struct Symbol {
     std::string name;
     VarType type;
     std::string ssa;
+    std::string constvalue;
     Symbol() : name(""), type(BaseType::VOID) {
     };
     Symbol(std::string name, VarType type, std::string ssa)
         : name(std::move(name)), type(std::move(type)), ssa(std::move(ssa)) {
+    };
+    Symbol(std::string name, VarType type, std::string ssa, std::string constvalue)
+        : name(std::move(name)), type(std::move(type)), ssa(std::move(ssa)), constvalue(std::move(constvalue)) {
     };
 };
 

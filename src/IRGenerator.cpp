@@ -99,20 +99,28 @@ std::string LLVMFunction::newTmp(std::string prefix) {
 }
 
 // =============== Global Variable
-LLVMGlobalVar::LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant) {
+LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant) {
     std::stringstream ss;
-    ss << "@" << name << " =";
-    if (isConstant) {
-        ss << " constant";
+    if (type.isFunction) {
+        ss << "declare " << TypeToLLVM(type) << " @" << name << "(";
+        if (!initValue.empty()) {
+            ss << initValue;
+        }        
+        ss << ")\n";
     } else {
-        ss << " global";
+        ss << "@" << name << " =";
+        if (isConstant) {
+            ss << " constant";
+        } else {
+            ss << " global";
+        }
+        if (!initValue.empty()) {
+            ss << " " << initValue;
+        } else {
+            ss << " " << TypeToLLVM(type) << " zeroinitializer";
+        }
+        ss << "\n";
     }
-    if (!initValue.empty()) {
-        ss << " " << initValue;
-    } else {
-        ss << " " << type << " zeroinitializer";
-    }
-    ss << "\n";
     instruction = std::move(ss.str());
 }
 std::string LLVMGlobalVar::toString() const {

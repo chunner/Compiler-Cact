@@ -73,6 +73,7 @@ public:
 
     std::string newLabel(const std::string &prefix);
     std::string newSSA(const std::string &prefix);
+    void addBuiltinFunc();
 };
 
 # endif

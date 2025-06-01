@@ -47,7 +47,7 @@ public:
     // std::string type;
     // std::string initValue;
     // bool isConstant;
-    LLVMGlobalVar(std::string name, std::string type, std::string initValue, bool isConstant);
+    LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant);
     std::string toString() const;
 };
 

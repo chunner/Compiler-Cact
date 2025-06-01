@@ -7,6 +7,7 @@ std::any Analysis::visitProgram(CactParser::ProgramContext *context) {
 std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
     isGlobal = true;
+    addBuiltinFunc();
     return visitChildren(context);
 }
 std::any Analysis::visitDecl(CactParser::DeclContext *context) {
@@ -58,7 +59,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // generate LLVM code
     if (isGlobal) {
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-        LLVMGlobalVar globalVar(ssa, initval.first, initval.first + " " + initval.second, true /* is Const*/);
+        LLVMGlobalVar globalVar(ssa, currentT, initval.first + " " + initval.second, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
         std::stringstream ss;
@@ -68,7 +69,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
         if (!dimSize.empty()) {
             std::string globalid = newSSA("__const." + ident);
-            LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, true /* is Const*/);
+            LLVMGlobalVar globalVar(globalid, currentT, initval.first + " " + initval.second, true /* is Const*/);
             llvmmodule.addGlobalVar(globalVar);
             std::string identcast = newSSA("cast." + ident);
             ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
@@ -93,7 +94,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         auto num = std::any_cast<std::pair<std::string, std::string>>(visitNumber(context->number()));
         std::string basellT = BTypeToLLVM(currentBType);
         if (num.first != basellT) {
-            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << num.second << std::endl;
+            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << num.first << std::endl;
             exit(EXIT_FAILURE);
         }
         return std::make_pair(basellT, num.second); // return {type, value}
@@ -118,7 +119,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         auto boolConst = std::any_cast<std::pair<std::string, std::string>>(visitBoolConst(context->boolConst()));
         std::string basellT = BTypeToLLVM(BaseType::I1);
         if (boolConst.first != basellT) {
-            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << boolConst.second << std::endl;
+            std::cerr << "Error: Type mismatch in constant initialization! Expected " << basellT << ", got " << boolConst.first << std::endl;
             exit(EXIT_FAILURE);
         }
         return std::make_pair(basellT, boolConst.second); // return {type, value}
@@ -151,10 +152,10 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     if (isGlobal) {
         if (context->constInitVal()) {
             auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
-            LLVMGlobalVar globalVar(ssa, initval.first, initval.first + " " + initval.second, false /* not Const*/);
+            LLVMGlobalVar globalVar(ssa, currentT, initval.first + " " + initval.second, false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         } else {
-            LLVMGlobalVar globalVar(ssa, TypeToLLVM(currentT), "", false /* not Const*/);
+            LLVMGlobalVar globalVar(ssa, currentT, "", false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         }
     } else {
@@ -166,7 +167,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
             auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
             if (!dimSize.empty()) {
                 std::string globalid = newSSA("__const." + ident);
-                LLVMGlobalVar globalVar(globalid, initval.first, initval.first + " " + initval.second, false /* not Const*/);
+                LLVMGlobalVar globalVar(globalid, currentT, initval.first + " " + initval.second, false /* not Const*/);
                 llvmmodule.addGlobalVar(globalVar);
                 std::string identcast = newSSA("cast." + ident);
                 ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
@@ -407,6 +408,10 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
     Symbol *s = sp.first;
     if (s == nullptr) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (s->type.isConst) {
+        std::cerr << "Error: Identifier " << ident << " is a constant and cannot be assigned!" << std::endl;
         exit(EXIT_FAILURE);
     }
     std::string identssa = s->ssa;
@@ -775,4 +780,25 @@ std::string Analysis::newLabel(const std::string &prefix) {
 
 std::string Analysis::newSSA(const std::string &prefix) {
     return prefix + std::to_string(ssaCounter++);
+}
+void Analysis::addBuiltinFunc() {
+    currentSymbolTable->define(Symbol("print_int", VarType(BaseType::VOID, false, true), ("print_int")));
+    currentSymbolTable->define(Symbol("print_float", VarType(BaseType::VOID, false, true), ("print_float")));
+    currentSymbolTable->define(Symbol("print_char", VarType(BaseType::VOID, false, true), ("print_char")));
+    currentSymbolTable->define(Symbol("get_int", VarType(BaseType::I32, false, true), ("get_int")));
+    currentSymbolTable->define(Symbol("get_float", VarType(BaseType::FLOAT, false, true), ("get_float")));
+    currentSymbolTable->define(Symbol("get_char", VarType(BaseType::I8, false, true), ("get_char")));
+
+    LLVMGlobalVar print_int("print_int", VarType(BaseType::VOID, false, true), "i32", false);
+    LLVMGlobalVar print_float("print_float", VarType(BaseType::VOID, false, true), "float", false);
+    LLVMGlobalVar print_char("print_char", VarType(BaseType::VOID, false, true), "i8", false);
+    LLVMGlobalVar get_int("get_int", VarType(BaseType::I32, false, true), "", false);
+    LLVMGlobalVar get_float("get_float", VarType(BaseType::FLOAT, false, true), "", false);
+    LLVMGlobalVar get_char("get_char", VarType(BaseType::I8, false, true), "", false);
+    llvmmodule.addGlobalVar(print_int);
+    llvmmodule.addGlobalVar(print_float);
+    llvmmodule.addGlobalVar(print_char);
+    llvmmodule.addGlobalVar(get_int);
+    llvmmodule.addGlobalVar(get_float);
+    llvmmodule.addGlobalVar(get_char);
 }
