@@ -196,16 +196,20 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
-    // add symbol to symbol table
-    VarType retT = VarType(retBT, false /*not Const*/, true /*is Function*/);
-    currentSymbolTable->define(Symbol(ident, retT, newSSA(ident)));
-    // generate LLVM code
     std::vector<LLVMValue> parameters;
+    std::vector<string> paramsT;
     if (context->funcFParams()) {
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
+        for (const auto &param : parameters) {
+            paramsT.push_back(TypeToLLVM(param.type));
+        }
     }
     LLVMFunction *function = new LLVMFunction(ident, BTypeToLLVM(retBT), parameters);
     currentFunction = function;
+    // add symbol to symbol table
+    VarType retT = VarType(retBT, false /*not Const*/, true /*is Function*/);
+    currentSymbolTable->define(Symbol(ident, retT, newSSA(ident), paramsT));
+    // generate LLVM code
     // visit the function body
     LLVMBasicBlock *block = new LLVMBasicBlock("entry");
     function->addBasicBlock(block);
@@ -218,9 +222,9 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         ss << "%" << parameters[i].name << " = alloca " << TypeToLLVM(parameters[i].type);
         currentBlock->addInstruction(ss.str());
         ss.str("");
-        ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* %" << parameters[i].name;
+        ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << "_params" << ", " << TypeToLLVM(parameters[i].type) << "* %" << parameters[i].name;
         currentBlock->addInstruction(ss.str());
-        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, newSSA(parameters[i].name)));
+        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, parameters[i].name));
     }
     visitBlock(context->block());
     // visit the body end
@@ -483,6 +487,7 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     }
 }
 std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
+    vector<string> paramsT;
     std::stringstream ss;
     for (int i = 0; i < context->exp().size(); i++) {
         auto param = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp(i)));
@@ -490,8 +495,9 @@ std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
         if (i != context->exp().size() - 1) {
             ss << ", ";
         }
+        paramsT.push_back(param.first);
     }
-    return ss.str();
+    return std::make_pair(paramsT, ss.str());
 }
 std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
     if (context->L_PAREN()) {
@@ -588,8 +594,24 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             ss << funcret << " = call " << TypeToLLVM(s.first->type) << " @" << ident << "(";
         }
         if (context->funcRParams()) {
-            std::string params = std::any_cast<std::string>(visitFuncRParams(context->funcRParams()));
-            ss << params;
+            auto params = std::any_cast<std::pair<std::vector<std::string>, std::string>>(visitFuncRParams(context->funcRParams()));
+            std::vector<std::string> paramsT = params.first;
+            if (paramsT.size() != s.first->params.size()) {
+                std::cerr << "Error: Function " << ident << " expects " << s.first->params.size() << " parameters, but got " << paramsT.size() << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            for (size_t i = 0; i < paramsT.size(); ++i) {
+                if (paramsT[i] != s.first->params[i]) {
+                    std::cerr << "Error: Type mismatch in function call! Expected " << s.first->params[i] << ", got " << paramsT[i] << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+            ss << params.second;
+        } else {
+            if (!s.first->params.empty()) {
+                std::cerr << "Error: Function " << ident << " expects parameters, but none were provided!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
         }
         ss << ")";
         currentBlock->addInstruction(ss.str());
@@ -788,12 +810,19 @@ std::string Analysis::newSSA(const std::string &prefix) {
     return prefix + std::to_string(ssaCounter++);
 }
 void Analysis::addBuiltinFunc() {
-    currentSymbolTable->define(Symbol("print_int", VarType(BaseType::VOID, false, true), ("print_int")));
-    currentSymbolTable->define(Symbol("print_float", VarType(BaseType::VOID, false, true), ("print_float")));
-    currentSymbolTable->define(Symbol("print_char", VarType(BaseType::VOID, false, true), ("print_char")));
-    currentSymbolTable->define(Symbol("get_int", VarType(BaseType::I32, false, true), ("get_int")));
-    currentSymbolTable->define(Symbol("get_float", VarType(BaseType::FLOAT, false, true), ("get_float")));
-    currentSymbolTable->define(Symbol("get_char", VarType(BaseType::I8, false, true), ("get_char")));
+    std::vector<std::string> paramsT;
+    paramsT.push_back("i32");
+    currentSymbolTable->define(Symbol("print_int", VarType(BaseType::VOID, false, true), ("print_int"), paramsT));
+    paramsT.clear();
+    paramsT.push_back("float");
+    currentSymbolTable->define(Symbol("print_float", VarType(BaseType::VOID, false, true), ("print_float"), paramsT));
+    paramsT.clear();
+    paramsT.push_back("i8");
+    currentSymbolTable->define(Symbol("print_char", VarType(BaseType::VOID, false, true), ("print_char"), paramsT));
+    paramsT.clear();
+    currentSymbolTable->define(Symbol("get_int", VarType(BaseType::I32, false, true), ("get_int"), paramsT));
+    currentSymbolTable->define(Symbol("get_float", VarType(BaseType::FLOAT, false, true), ("get_float"), paramsT));
+    currentSymbolTable->define(Symbol("get_char", VarType(BaseType::I8, false, true), ("get_char"), paramsT));
 
     LLVMGlobalVar print_int("print_int", VarType(BaseType::VOID, false, true), "i32", false);
     LLVMGlobalVar print_float("print_float", VarType(BaseType::VOID, false, true), "float", false);

@@ -48,6 +48,7 @@ struct Symbol {
     VarType type;
     std::string ssa;
     std::string constvalue;
+    std::vector<std::string> params;
     Symbol() : name(""), type(BaseType::VOID) {
     };
     Symbol(std::string name, VarType type, std::string ssa)
@@ -55,6 +56,9 @@ struct Symbol {
     };
     Symbol(std::string name, VarType type, std::string ssa, std::string constvalue)
         : name(std::move(name)), type(std::move(type)), ssa(std::move(ssa)), constvalue(std::move(constvalue)) {
+    };
+    Symbol(std::string name, VarType type, std::string ssa, std::vector<std::string> params)
+        : name(std::move(name)), type(std::move(type)), ssa(std::move(ssa)), params(std::move(params)) {
     };
 };
 

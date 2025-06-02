@@ -43,7 +43,7 @@ mapfile -t cact_files < <(find "$TEST_DIR" -name "*.cact" -type f | sort)
 
 # 遍历数组中的所有文件
 for input_file in "${cact_files[@]}"; do
-    TOTAL=$((TOTAL + 1))
+
     
     # 获取文件名（不含路径和扩展名）
     filename=$(basename "$input_file" .cact)
@@ -54,7 +54,8 @@ for input_file in "${cact_files[@]}"; do
     output_exe="build/test/${filename}"
     
     echo -e "[$TOTAL] Processing: $input_file" | tee -a "$LOG_FILE"
-    
+    TOTAL=$((TOTAL + 1))   
+
     # 步骤1: 使用compiler编译
     echo "  Step 1: Compiling to LLVM IR..." | tee -a "$LOG_FILE"
     if timeout 30s ./build/compiler "$input_file" "$output_ll" 2>&1 | tee -a "$LOG_FILE"; then
