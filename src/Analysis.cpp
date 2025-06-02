@@ -8,7 +8,13 @@ std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     currentSymbolTable = new SymbolTable(nullptr);
     isGlobal = true;
     addBuiltinFunc();
-    return visitChildren(context);
+    visitChildren(context);
+    // check if the main function is defined
+    if (!currentSymbolTable->lookup("main", true /*is function*/).first) {
+        std::cerr << "Error: main function not defined!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return 0;
 }
 std::any Analysis::visitDecl(CactParser::DeclContext *context) {
     if (context->constDecl()) {
@@ -190,6 +196,11 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
 std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     BaseType retBT = std::any_cast<BaseType>(visitFuncType(context->funcType()));
     std::string ident = context->IDENT()->getText();
+    // check if the main return int 
+    if (ident == "main" && retBT != BaseType::I32) {
+        std::cerr << "Error: main function must return int!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
     // check if the identifier is already defined
     bool defined = currentSymbolTable->lookupInCurrentScope(ident, true /*is function*/);
     if (defined) {
@@ -199,6 +210,11 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     std::vector<LLVMValue> parameters;
     std::vector<string> paramsT;
     if (context->funcFParams()) {
+        // check if the main function has parameters
+        if (ident == "main") {
+            std::cerr << "Error: main function must not have parameters!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
         for (const auto &param : parameters) {
             paramsT.push_back(TypeToLLVM(param.type));
@@ -374,7 +390,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
     } else if (context->RETURN_KW()) { // return exp;
         if (context->exp()) {
             auto ret = std::any_cast<std::pair<std::string, std::string>>(visitExp(context->exp()));
-            if (currentFunction->returnType != ret.first && currentFunction->returnType != "void") {
+            if (currentFunction->returnType != ret.first || currentFunction->returnType == "void") {
                 std::cerr << "Error: Type mismatch in return statement! Expected " << currentFunction->returnType << ", got " << ret.first << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -452,7 +468,11 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
             floatConst.pop_back();
         }
-        return std::pair<std::string, std::string>{"float", floatConst};
+        if (currentBType == BaseType::DOUBLE) {
+            return std::pair<std::string, std::string>{"double", floatConst};
+        } else {
+            return std::pair<std::string, std::string>{"float", floatConst};
+        }
     } else if (context->EXPONENT()) {
         std::string exponent = context->EXPONENT()->getText();
         if (!exponent.empty() && (exponent.back() == 'f' || exponent.back() == 'F')) {
