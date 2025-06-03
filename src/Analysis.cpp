@@ -65,6 +65,10 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // generate LLVM code
     if (isGlobal) {
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+        if (initval.first != TypeToLLVM(currentT)) {
+            std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << initval.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
         LLVMGlobalVar globalVar(ssa, currentT, initval.first + " " + initval.second, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
@@ -73,6 +77,10 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         currentBlock->addInstruction(ss.str());
         ss.str("");
         auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+        if (initval.first != TypeToLLVM(currentT)) {
+            std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << initval.first << std::endl;
+            exit(EXIT_FAILURE);
+        }
         if (!dimSize.empty()) {
             std::string globalid = newSSA("__const." + ident);
             LLVMGlobalVar globalVar(globalid, currentT, initval.first + " " + initval.second, true /* is Const*/);
@@ -109,7 +117,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         for (const auto &it : context->constInitVal()) {
             initVals.push_back(std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(it)));
         }
-        std::string childT = initVals[0].second;
+        std::string childT = initVals[0].first;
         std::string arrayT = "[" + std::to_string(initVals.size()) + " x " + childT + "]";
         std::stringstream ss;
         ss << "[";
@@ -158,6 +166,10 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     if (isGlobal) {
         if (context->constInitVal()) {
             auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+            if (initval.first != TypeToLLVM(currentT)) {
+                std::cerr << "Error: Type mismatch in variable declaration! Expected " << TypeToLLVM(currentT) << ", got " << initval.first << std::endl;
+                exit(EXIT_FAILURE);
+            }
             LLVMGlobalVar globalVar(ssa, currentT, initval.first + " " + initval.second, false /* not Const*/);
             llvmmodule.addGlobalVar(globalVar);
         } else {
@@ -171,6 +183,10 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         ss.str("");
         if (context->constInitVal()) {
             auto initval = std::any_cast<std::pair<std::string, std::string>>(visitConstInitVal(context->constInitVal()));
+            if (initval.first != TypeToLLVM(currentT)) {
+                std::cerr << "Error: Type mismatch in variable declaration! Expected " << TypeToLLVM(currentT) << ", got " << initval.first << std::endl;
+                exit(EXIT_FAILURE);
+            }
             if (!dimSize.empty()) {
                 std::string globalid = newSSA("__const." + ident);
                 LLVMGlobalVar globalVar(globalid, currentT, initval.first + " " + initval.second, false /* not Const*/);
@@ -463,22 +479,29 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     if (context->intConst()) {
         std::string intVal = std::any_cast<std::string>(visitIntConst(context->intConst()));
         return std::pair<std::string, std::string>{"i32", intVal};
-    } else if (context->FloatConst()) {
-        std::string floatConst = context->FloatConst()->getText();
-        if (!floatConst.empty() && (floatConst.back() == 'f' || floatConst.back() == 'F')) {
-            floatConst.pop_back();
-        }
-        if (currentBType == BaseType::DOUBLE) {
-            return std::pair<std::string, std::string>{"double", floatConst};
+    } else if (context->FloatConst() || context->EXPONENT()) {
+        std::string literal;
+        if (context->FloatConst()) {
+            literal = context->FloatConst()->getText();
         } else {
-            return std::pair<std::string, std::string>{"float", floatConst};
+            literal = context->EXPONENT()->getText();
         }
-    } else if (context->EXPONENT()) {
-        std::string exponent = context->EXPONENT()->getText();
-        if (!exponent.empty() && (exponent.back() == 'f' || exponent.back() == 'F')) {
-            exponent.pop_back();
+        if (currentBType== BaseType::FLOAT) {
+            float value = std::stof(literal);
+            uint32_t bits;
+            std::memcpy(&bits, &value, sizeof(float));
+            uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::uppercase << bits64;
+            return std::pair<std::string, std::string>{"float", ss.str()};
+        } else {
+            double value = std::stod(literal);
+            uint64_t bits;
+            std::memcpy(&bits, &value, sizeof(double));
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::uppercase << bits;
+            return std::pair<std::string, std::string>{"double", ss.str()};
         }
-        return std::pair<std::string, std::string>{"float", exponent};
     } else if (context->CharConst()) {
         std::string ch = context->CharConst()->getText();
         if (ch.size() == 3 && ch.front() == '\'' && ch.back() == '\'') {
