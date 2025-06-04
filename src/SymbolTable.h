@@ -32,6 +32,9 @@ struct VarType {
     VarType(BaseType baseT, bool isConst, bool isFunction)
         : baseType(baseT), isConst(isConst), isFunction(isFunction) {
     };
+    VarType(BaseType baseT, bool isConst)
+        : baseType(baseT), isConst(isConst), isFunction(false) {
+    };
     VarType(BaseType baseT)
         : baseType(baseT) {
     };

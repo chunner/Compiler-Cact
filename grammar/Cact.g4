@@ -71,7 +71,7 @@ lAndExp     : eqExp (AND eqExp)*;
 lOrExp      : lAndExp (OR lAndExp)*;
 
 
-intConst    : DECIMAL_CONST | OCTAL_CONST | HEXADECIMAL_CONST;
+intConst    :   (PLUS | MINUS)?(DECIMAL_CONST | OCTAL_CONST | HEXADECIMAL_CONST);
 boolConst   : TRUE | FALSE;
 
 

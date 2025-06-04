@@ -104,7 +104,7 @@ LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initVal
     if (type.isFunction) {
         ss << "declare " << TypeToLLVM(type) << " @" << name << "(";
         if (!initValue.empty()) {
-            ss << initValue;
+            ss << TypeToLLVM(type) << " " << initValue;
         }        
         ss << ")\n";
     } else {

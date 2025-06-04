@@ -672,6 +672,8 @@ public:
     antlr4::tree::TerminalNode *DECIMAL_CONST();
     antlr4::tree::TerminalNode *OCTAL_CONST();
     antlr4::tree::TerminalNode *HEXADECIMAL_CONST();
+    antlr4::tree::TerminalNode *PLUS();
+    antlr4::tree::TerminalNode *MINUS();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
