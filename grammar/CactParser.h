@@ -30,12 +30,12 @@ public:
     RuleProgram = 0, RuleCompUnit = 1, RuleDecl = 2, RuleBType = 3, RuleConstDecl = 4, 
     RuleConstDef = 5, RuleConstInitVal = 6, RuleVarDecl = 7, RuleVarDef = 8, 
     RuleFuncDef = 9, RuleFuncType = 10, RuleFuncFParams = 11, RuleFuncFParam = 12, 
-    RuleBlock = 13, RuleBlockItem = 14, RuleStmt = 15, RuleExp = 16, RuleCond = 17, 
-    RuleLVal = 18, RuleNumber = 19, RuleFuncRParams = 20, RulePrimaryExp = 21, 
-    RuleUnaryExp = 22, RuleUnaryOp = 23, RuleMulExp = 24, RuleMulOp = 25, 
-    RuleAddExp = 26, RuleAddOp = 27, RuleRelExp = 28, RuleRelOp = 29, RuleEqExp = 30, 
-    RuleEqOp = 31, RuleLAndExp = 32, RuleLOrExp = 33, RuleIntConst = 34, 
-    RuleBoolConst = 35
+    RuleBlock = 13, RuleBlockItem = 14, RuleStmt = 15, RuleElseIFStmt = 16, 
+    RuleElseStmt = 17, RuleExp = 18, RuleCond = 19, RuleLVal = 20, RuleNumber = 21, 
+    RuleSignedNumber = 22, RuleFuncRParams = 23, RulePrimaryExp = 24, RuleUnaryExp = 25, 
+    RuleUnaryOp = 26, RuleMulExp = 27, RuleMulOp = 28, RuleAddExp = 29, 
+    RuleAddOp = 30, RuleRelExp = 31, RuleRelOp = 32, RuleEqExp = 33, RuleEqOp = 34, 
+    RuleLAndExp = 35, RuleLOrExp = 36, RuleIntConst = 37, RuleBoolConst = 38
   };
 
   explicit CactParser(antlr4::TokenStream *input);
@@ -71,10 +71,13 @@ public:
   class BlockContext;
   class BlockItemContext;
   class StmtContext;
+  class ElseIFStmtContext;
+  class ElseStmtContext;
   class ExpContext;
   class CondContext;
   class LValContext;
   class NumberContext;
+  class SignedNumberContext;
   class FuncRParamsContext;
   class PrimaryExpContext;
   class UnaryExpContext;
@@ -197,7 +200,7 @@ public:
   public:
     ConstInitValContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    NumberContext *number();
+    SignedNumberContext *signedNumber();
     antlr4::tree::TerminalNode *L_BRACE();
     antlr4::tree::TerminalNode *R_BRACE();
     std::vector<ConstInitValContext *> constInitVal();
@@ -363,9 +366,10 @@ public:
     antlr4::tree::TerminalNode *L_PAREN();
     CondContext *cond();
     antlr4::tree::TerminalNode *R_PAREN();
-    std::vector<StmtContext *> stmt();
-    StmtContext* stmt(size_t i);
-    antlr4::tree::TerminalNode *ELSE_KW();
+    StmtContext *stmt();
+    std::vector<ElseIFStmtContext *> elseIFStmt();
+    ElseIFStmtContext* elseIFStmt(size_t i);
+    ElseStmtContext *elseStmt();
     antlr4::tree::TerminalNode *WHILE_KW();
     antlr4::tree::TerminalNode *BREAK_KW();
     antlr4::tree::TerminalNode *CONTINUE_KW();
@@ -377,6 +381,38 @@ public:
   };
 
   StmtContext* stmt();
+
+  class  ElseIFStmtContext : public antlr4::ParserRuleContext {
+  public:
+    ElseIFStmtContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *ELSE_KW();
+    antlr4::tree::TerminalNode *IF_KW();
+    antlr4::tree::TerminalNode *L_PAREN();
+    CondContext *cond();
+    antlr4::tree::TerminalNode *R_PAREN();
+    StmtContext *stmt();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ElseIFStmtContext* elseIFStmt();
+
+  class  ElseStmtContext : public antlr4::ParserRuleContext {
+  public:
+    ElseStmtContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *ELSE_KW();
+    StmtContext *stmt();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ElseStmtContext* elseStmt();
 
   class  ExpContext : public antlr4::ParserRuleContext {
   public:
@@ -438,6 +474,21 @@ public:
   };
 
   NumberContext* number();
+
+  class  SignedNumberContext : public antlr4::ParserRuleContext {
+  public:
+    SignedNumberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    NumberContext *number();
+    antlr4::tree::TerminalNode *PLUS();
+    antlr4::tree::TerminalNode *MINUS();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  SignedNumberContext* signedNumber();
 
   class  FuncRParamsContext : public antlr4::ParserRuleContext {
   public:
@@ -672,8 +723,6 @@ public:
     antlr4::tree::TerminalNode *DECIMAL_CONST();
     antlr4::tree::TerminalNode *OCTAL_CONST();
     antlr4::tree::TerminalNode *HEXADECIMAL_CONST();
-    antlr4::tree::TerminalNode *PLUS();
-    antlr4::tree::TerminalNode *MINUS();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

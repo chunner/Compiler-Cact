@@ -103,8 +103,8 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     return 0;;
 }
 std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
-    if (context->number()) {
-        auto num = std::any_cast<LLVMValue>(visitNumber(context->number()));
+    if (context->signedNumber()) {
+        auto num = std::any_cast<LLVMValue>(visitSignedNumber(context->signedNumber()));
         if (currentBType != num.type.baseType) {
             std::cerr << "Error: Type mismatch in constant initialization! Expected " << BTypeToLLVM(currentBType) << ", got " << TypeToLLVM(num.type) << std::endl;
             exit(EXIT_FAILURE);
@@ -318,6 +318,12 @@ std::any Analysis::visitBlockItem(CactParser::BlockItemContext *context) {
     }
     return 0;
 }
+std::any Analysis::visitElseIFStmt(CactParser::ElseIFStmtContext *context) {
+    return 0;
+}
+std::any Analysis::visitElseStmt(CactParser::ElseStmtContext *context) {
+    return 0;
+}
 std::any Analysis::visitStmt(CactParser::StmtContext *context) {
     if (context->lVal()) {  // lva = exp;
         auto left_ptr = std::any_cast<LLVMValue>(visitLVal(context->lVal()));
@@ -335,12 +341,15 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         currentSymbolTable = currentSymbolTable->getParent();
     } else if (context->IF_KW()) { // if (cond) stmt else stmt
         std::string thenLabel = newLabel("then");
-        std::string elseLabel = context->ELSE_KW() ? newLabel("else") : "";
+        std::string elseifLabel = context->elseIFStmt().empty() ? "" : newLabel("elseif");
+        std::string elseLabel = context->elseStmt() ? newLabel("else") : "";
         std::string endLabel = newLabel("ifend");
         std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
 
         std::stringstream ss;
-        if (context->ELSE_KW()) {
+        if (!elseifLabel.empty()) {
+            ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << elseifLabel;
+        } else if (!elseLabel.empty()) {
             ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << elseLabel;
         } else {
             ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << endLabel;
@@ -349,17 +358,48 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         // then
         LLVMBasicBlock *thenBlock = new LLVMBasicBlock(thenLabel);
         currentBlock = thenBlock;
-        visitStmt(context->stmt(0));
+        visitStmt(context->stmt());
         currentBlock->addInstruction("br label %" + endLabel);
         currentFunction->addBasicBlock(thenBlock);
 
+        // else if
+        for (int i = 0; i < context->elseIFStmt().size(); i++) {
+            std::string nextLabel;
+            if (i < context->elseIFStmt().size() - 1) {
+                nextLabel = newLabel("elseif_next");
+            } else if (context->elseStmt()) {
+                nextLabel = elseLabel;
+            } else {
+                nextLabel = endLabel;
+            }
+
+            LLVMBasicBlock *elseifBlock = new LLVMBasicBlock(elseifLabel);
+            currentBlock = elseifBlock;
+            currentFunction->addBasicBlock(elseifBlock);
+            std::string elseifCond = std::any_cast<std::string>(visitCond(context->elseIFStmt(i)->cond()));
+            std::stringstream elseifSS;
+            std::string elsethenLabel = newLabel("elseif_then");
+            elseifSS << "br i1 " << elseifCond << ", label %" << elsethenLabel << ", label %" << nextLabel;
+            currentBlock->addInstruction(elseifSS.str());
+            // elseif then
+            LLVMBasicBlock *elseifThenBlock = new LLVMBasicBlock(elsethenLabel);
+            currentBlock = elseifThenBlock;
+            visitStmt(context->elseIFStmt(i)->stmt());
+            currentBlock->addInstruction("br label %" + endLabel);
+            currentFunction->addBasicBlock(elseifThenBlock);
+            // update elseifLabel for next iteration
+            if (i < context->elseIFStmt().size() - 1) {
+                elseifLabel = newLabel("elseif");
+            }
+        }
+
         // else
-        if (context->ELSE_KW()) {
+        if (context->elseStmt()) {
             LLVMBasicBlock *elseBlock = new LLVMBasicBlock(elseLabel);
             currentBlock = elseBlock;
-            visitStmt(context->stmt(1));
-            currentBlock->addInstruction("br label %" + endLabel);
             currentFunction->addBasicBlock(elseBlock);
+            visitStmt(context->elseStmt()->stmt());
+            currentBlock->addInstruction("br label %" + endLabel);
         }
 
         // end
@@ -386,7 +426,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         LLVMBasicBlock *bodyBlock = new LLVMBasicBlock(bodyLabel);
         currentFunction->addBasicBlock(bodyBlock);
         currentBlock = bodyBlock;
-        visitStmt(context->stmt(0));
+        visitStmt(context->stmt());
         currentBlock->addInstruction("br label %" + condLabel);
         // end
         LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
@@ -479,7 +519,18 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         return LLVMValue((sp.second ? "@" : "%") + identssa, VarType(s->type.baseType));
     }
 }
-// return the (LLVM type,LLVM value)
+std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
+    auto num = std::any_cast<LLVMValue>(visitNumber(context->number()));
+    if (context->MINUS()) {
+        std::stringstream ss;
+        ss << "sub " << TypeToLLVM(num.type) << " 0, " << num.name;
+        std::string negated = "%" + newSSA("negated");
+        currentBlock->addInstruction(ss.str() + " to " + negated);
+        return LLVMValue(negated, num.type);
+    } else {
+        return num; // just return the number
+    }
+}
 std::any Analysis::visitNumber(CactParser::NumberContext *context) {
     if (context->intConst()) {
         std::string intVal = std::any_cast<std::string>(visitIntConst(context->intConst()));

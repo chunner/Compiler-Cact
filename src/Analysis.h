@@ -71,7 +71,9 @@ public:
     std::any visitIntConst(CactParser::IntConstContext *context) override;
     std::any visitBoolConst(CactParser::BoolConstContext *context) override;
     std::any visitErrorNode(tree::ErrorNode *node) override;
-
+    std::any visitElseIFStmt(CactParser::ElseIFStmtContext *context) override;
+    std::any visitElseStmt(CactParser::ElseStmtContext *context) override;
+    std::any visitSignedNumber(CactParser::SignedNumberContext *context) override;
 
     std::string newLabel(const std::string &prefix);
     std::string newSSA(const std::string &prefix);

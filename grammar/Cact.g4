@@ -13,7 +13,7 @@ bType       : INT_KW | DOUBLE_KW | CHAR_KW | FLOAT_KW | BOOL_KW;
 
 constDecl   : CONST_KW bType constDef (COMMA constDef)* SEMICOLON;// const int id1[1][2] = 1, id2 = 2, id3[1] = {1,2};
 constDef    : IDENT (L_BRACKET intConst R_BRACKET)* ASSIGN constInitVal;
-constInitVal: number
+constInitVal: signedNumber
             | L_BRACE (constInitVal (COMMA constInitVal)* )? R_BRACE  // { 1,2,3 ,4 }
             | boolConst;
 
@@ -30,17 +30,20 @@ blockItem   : decl | stmt;
 
 stmt        : lVal ASSIGN exp SEMICOLON   // id[1][2] = 1;
             | block                       // { ... }
-            | IF_KW L_PAREN cond R_PAREN stmt (ELSE_KW stmt)?  // if (cond) stmt else stmt
+            | IF_KW L_PAREN cond R_PAREN stmt elseIFStmt* elseStmt?
             | WHILE_KW L_PAREN cond R_PAREN stmt // while(cond) stmt
             | BREAK_KW SEMICOLON                // break;
             | CONTINUE_KW SEMICOLON             // continue;
             | RETURN_KW exp? SEMICOLON          // return exp;
             | exp? SEMICOLON;                   //  exp;
+elseIFStmt  : ELSE_KW IF_KW L_PAREN cond R_PAREN stmt;
+elseStmt    : ELSE_KW stmt;
 
 exp         : addExp;     
 cond        : lOrExp;
 lVal        : IDENT (L_BRACKET exp R_BRACKET)*;
 number      : intConst | FloatConst | EXPONENT | CharConst;
+signedNumber: (PLUS | MINUS)? number;
 funcRParams : exp (COMMA exp)*;
 
 // 8 primary level
@@ -71,7 +74,7 @@ lAndExp     : eqExp (AND eqExp)*;
 lOrExp      : lAndExp (OR lAndExp)*;
 
 
-intConst    :   (PLUS | MINUS)?(DECIMAL_CONST | OCTAL_CONST | HEXADECIMAL_CONST);
+intConst    : (DECIMAL_CONST | OCTAL_CONST | HEXADECIMAL_CONST);
 boolConst   : TRUE | FALSE;
 
 

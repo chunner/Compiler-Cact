@@ -54,6 +54,10 @@ public:
 
     virtual std::any visitStmt(CactParser::StmtContext *context) = 0;
 
+    virtual std::any visitElseIFStmt(CactParser::ElseIFStmtContext *context) = 0;
+
+    virtual std::any visitElseStmt(CactParser::ElseStmtContext *context) = 0;
+
     virtual std::any visitExp(CactParser::ExpContext *context) = 0;
 
     virtual std::any visitCond(CactParser::CondContext *context) = 0;
@@ -61,6 +65,8 @@ public:
     virtual std::any visitLVal(CactParser::LValContext *context) = 0;
 
     virtual std::any visitNumber(CactParser::NumberContext *context) = 0;
+
+    virtual std::any visitSignedNumber(CactParser::SignedNumberContext *context) = 0;
 
     virtual std::any visitFuncRParams(CactParser::FuncRParamsContext *context) = 0;
 

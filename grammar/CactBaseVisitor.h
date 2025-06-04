@@ -82,6 +82,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitElseIFStmt(CactParser::ElseIFStmtContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitElseStmt(CactParser::ElseStmtContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitExp(CactParser::ExpContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -95,6 +103,10 @@ public:
   }
 
   virtual std::any visitNumber(CactParser::NumberContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSignedNumber(CactParser::SignedNumberContext *ctx) override {
     return visitChildren(ctx);
   }
 
