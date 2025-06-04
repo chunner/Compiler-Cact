@@ -104,8 +104,8 @@ LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initVal
     if (type.isFunction) {
         ss << "declare " << TypeToLLVM(type) << " @" << name << "(";
         if (!initValue.empty()) {
-            ss << TypeToLLVM(type) << " " << initValue;
-        }        
+            ss << initValue;
+        }
         ss << ")\n";
     } else {
         ss << "@" << name << " =";
@@ -115,7 +115,7 @@ LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initVal
             ss << " global";
         }
         if (!initValue.empty()) {
-            ss << " " << initValue;
+            ss << " " << TypeToLLVM(type) << " " << initValue;
         } else {
             ss << " " << TypeToLLVM(type) << " zeroinitializer";
         }

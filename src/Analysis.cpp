@@ -65,7 +65,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     // generate LLVM code
     if (isGlobal) {
         auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
-        if (initval.type.baseType != currentBType || initval.type.dimSizes != dimSize) {
+        if (initval.type.baseType != currentBType) {
             std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -77,7 +77,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         currentBlock->addInstruction(ss.str());
         ss.str("");
         auto initval = std::any_cast<LLVMValue> (visitConstInitVal(context->constInitVal()));
-        if (initval.type.baseType != currentBType || initval.type.dimSizes != dimSize) {
+        if (initval.type.baseType != currentBType) {
             std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -112,10 +112,10 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         return num;
     } else if (!context->constInitVal().empty()) { // {{{4,5},{6,7}}, {{1, 2}, {2, 3}}} -> [2 x [2 x [2 x i32]]] [[2 x [2 x i32]] [[2 x i32] [i32 4, i32 5], [2 x i32] [i32 6, i32 7]], [2 x [2 x i32]] [[2 x i32] [i32 1, i32 2], [2 x i32] [i32 2, i32 3]]
         std::vector<LLVMValue> initVals;
-        for (const auto &it : context->constInitVal()) {
-            auto initVal = std::any_cast<LLVMValue>(visitConstInitVal(it));
-            if (initVal.type.baseType != initVals[0].type.baseType || initVal.type.dimSizes.size() != initVals[0].type.dimSizes.size()) {
-                std::cerr << "Error: Type mismatch in constant initialization! Expected " << TypeToLLVM(initVals[0].type) << ", got " << TypeToLLVM(initVal.type) << std::endl;
+        for (int i = 0; i < context->constInitVal().size(); ++i) {
+            auto initVal = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal(i)));
+            if (initVal.type.baseType != currentBType) {
+                std::cerr << "Error: Type mismatch in constant initialization! Expected " << BTypeToLLVM(currentBType) << ", got " << TypeToLLVM(initVal.type) << std::endl;
                 exit(EXIT_FAILURE);
             } else {
                 initVals.push_back(initVal);
@@ -146,7 +146,7 @@ std::any Analysis::visitConstInitVal(CactParser::ConstInitValContext *context) {
         return boolConst;
     } else if (context->L_BRACE() && context->constInitVal().empty()) {
         std::vector<int> dimSize = { 0 };
-        return LLVMValue("", VarType(currentBType, false, false, dimSize));
+        return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, false /*not function*/, dimSize));
     }
 }
 std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
@@ -176,7 +176,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     if (isGlobal) {
         if (context->constInitVal()) {
             auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
-            if (initval.type.baseType != currentBType || initval.type.dimSizes != dimSize) {
+            if (initval.type.baseType != currentBType) {
                 std::cerr << "Error: Type mismatch in variable declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -193,7 +193,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         ss.str("");
         if (context->constInitVal()) {
             auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
-            if (initval.type.baseType != currentBType || initval.type.dimSizes != dimSize) {
+            if (initval.type.baseType != currentBType) {
                 std::cerr << "Error: Type mismatch in variable declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -474,9 +474,9 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
             ss << ", i32 " << idx; // add index
         }
         currentBlock->addInstruction(ss.str());
-        return std::make_pair(TypeToLLVM(s->type), ptr);
+        return LLVMValue(ptr, VarType(s->type.baseType));
     } else {
-        return std::make_pair(BTypeToLLVM(s->type.baseType), (sp.second ? "@" : "%") + identssa);
+        return LLVMValue((sp.second ? "@" : "%") + identssa, VarType(s->type.baseType));
     }
 }
 // return the (LLVM type,LLVM value)
@@ -579,7 +579,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             currentBlock->addInstruction(ss.str());
             std::string load = "%" + newSSA("load");
             ss.str("");
-            ss << load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* %" << ptr;
+            ss << load << " = load " << BTypeToLLVM(s.first->type.baseType) << ", " << BTypeToLLVM(s.first->type.baseType) << "* " << ptr;
             currentBlock->addInstruction(ss.str());
             return LLVMValue(load, VarType(s.first->type.baseType));
         } else {
@@ -725,7 +725,7 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
         if (context->addOp(i - 1)->PLUS()) {
             ss << sum.name << " = add " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
         } else if (context->addOp(i - 1)->MINUS()) {
-            ss << sum.name << " = sub " << left.name << " " << left.name << ", " << right.name;
+            ss << sum.name << " = sub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
         }
         currentBlock->addInstruction(ss.str());
         left = sum;
