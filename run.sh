@@ -1,7 +1,8 @@
 #!/bin/bash
 # filepath: /home/skyward/cact/run.sh
 
-TEST_DIR="test/samples/samples_semantic"
+#TEST_DIR="test/samples/samples_semantic"
+TEST_DIR="test/testcases/functional"
 RUNTIME_LIB="libcact/libcactio.a"
 
 # 创建必要的目录
