@@ -47,7 +47,7 @@ signedNumber: (PLUS | MINUS)? number;
 funcRParams : exp (COMMA exp)*;
 
 // 8 primary level
-primaryExp  : L_PAREN exp R_PAREN 
+primaryExp  : L_PAREN lOrExp R_PAREN 
             | IDENT (L_BRACKET exp R_BRACKET)*
             | number
             | boolConst;

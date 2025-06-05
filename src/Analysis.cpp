@@ -484,6 +484,13 @@ std::any Analysis::visitExp(CactParser::ExpContext *context) {
 
 std::any Analysis::visitCond(CactParser::CondContext *context) {
     auto exp = any_cast<LLVMValue> (visitLOrExp(context->lOrExp()));
+    if (exp.type.baseType == BaseType::I32) {
+        std::string newexp = newSSA("cond");
+        std::stringstream ss;
+        ss << "%" << newexp << " = icmp ne i32 " << exp.name << ", 0"; // convert i32 to i1
+        currentBlock->addInstruction(ss.str());
+        return std::string("%") + newexp; // return the condition as a string
+    }
     if (exp.type.baseType != BaseType::I1 || !exp.type.dimSizes.empty()) {
         std::cerr << "Error: Condition expression must be of type i1!" << std::endl;
         exit(EXIT_FAILURE);
@@ -650,7 +657,7 @@ std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
 }
 std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
     if (context->L_PAREN()) {
-        return (visitExp(context->exp(0)));
+        return visitLOrExp(context->lOrExp());
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
@@ -942,6 +949,10 @@ std::any Analysis::visitEqOp(CactParser::EqOpContext *context) {
 }
 std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     auto left = std::any_cast<LLVMValue>(visitEqExp(context->eqExp(0)));
+    if (context->eqExp().size() == 1) {
+        return left;
+    }
+
     if (left.type.baseType != BaseType::I1) {
         std::string newleft = "%" + newSSA("land");
         currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
@@ -990,6 +1001,10 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
 }
 std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     auto left = std::any_cast<LLVMValue>(visitLAndExp(context->lAndExp(0)));
+    if (context->lAndExp().size() == 1) {
+        return left;
+    }
+
     if (left.type.baseType != BaseType::I1) {
         std::string newleft = "%" + newSSA("lor");
         currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");

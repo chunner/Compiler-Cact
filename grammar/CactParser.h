@@ -513,12 +513,13 @@ public:
     PrimaryExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *L_PAREN();
-    std::vector<ExpContext *> exp();
-    ExpContext* exp(size_t i);
+    LOrExpContext *lOrExp();
     antlr4::tree::TerminalNode *R_PAREN();
     antlr4::tree::TerminalNode *IDENT();
     std::vector<antlr4::tree::TerminalNode *> L_BRACKET();
     antlr4::tree::TerminalNode* L_BRACKET(size_t i);
+    std::vector<ExpContext *> exp();
+    ExpContext* exp(size_t i);
     std::vector<antlr4::tree::TerminalNode *> R_BRACKET();
     antlr4::tree::TerminalNode* R_BRACKET(size_t i);
     NumberContext *number();

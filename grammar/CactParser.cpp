@@ -182,7 +182,7 @@ void cactParserInitialize() {
   	284,286,7,1,0,0,285,284,1,0,0,0,285,286,1,0,0,0,286,287,1,0,0,0,287,288,
   	3,42,21,0,288,45,1,0,0,0,289,294,3,36,18,0,290,291,5,46,0,0,291,293,3,
   	36,18,0,292,290,1,0,0,0,293,296,1,0,0,0,294,292,1,0,0,0,294,295,1,0,0,
-  	0,295,47,1,0,0,0,296,294,1,0,0,0,297,298,5,40,0,0,298,299,3,36,18,0,299,
+  	0,295,47,1,0,0,0,296,294,1,0,0,0,297,298,5,40,0,0,298,299,3,72,36,0,299,
   	300,5,41,0,0,300,314,1,0,0,0,301,308,5,16,0,0,302,303,5,44,0,0,303,304,
   	3,36,18,0,304,305,5,45,0,0,305,307,1,0,0,0,306,302,1,0,0,0,307,310,1,
   	0,0,0,308,306,1,0,0,0,308,309,1,0,0,0,309,314,1,0,0,0,310,308,1,0,0,0,
@@ -2414,12 +2414,8 @@ tree::TerminalNode* CactParser::PrimaryExpContext::L_PAREN() {
   return getToken(CactParser::L_PAREN, 0);
 }
 
-std::vector<CactParser::ExpContext *> CactParser::PrimaryExpContext::exp() {
-  return getRuleContexts<CactParser::ExpContext>();
-}
-
-CactParser::ExpContext* CactParser::PrimaryExpContext::exp(size_t i) {
-  return getRuleContext<CactParser::ExpContext>(i);
+CactParser::LOrExpContext* CactParser::PrimaryExpContext::lOrExp() {
+  return getRuleContext<CactParser::LOrExpContext>(0);
 }
 
 tree::TerminalNode* CactParser::PrimaryExpContext::R_PAREN() {
@@ -2436,6 +2432,14 @@ std::vector<tree::TerminalNode *> CactParser::PrimaryExpContext::L_BRACKET() {
 
 tree::TerminalNode* CactParser::PrimaryExpContext::L_BRACKET(size_t i) {
   return getToken(CactParser::L_BRACKET, i);
+}
+
+std::vector<CactParser::ExpContext *> CactParser::PrimaryExpContext::exp() {
+  return getRuleContexts<CactParser::ExpContext>();
+}
+
+CactParser::ExpContext* CactParser::PrimaryExpContext::exp(size_t i) {
+  return getRuleContext<CactParser::ExpContext>(i);
 }
 
 std::vector<tree::TerminalNode *> CactParser::PrimaryExpContext::R_BRACKET() {
@@ -2488,7 +2492,7 @@ CactParser::PrimaryExpContext* CactParser::primaryExp() {
         setState(297);
         match(CactParser::L_PAREN);
         setState(298);
-        exp();
+        lOrExp();
         setState(299);
         match(CactParser::R_PAREN);
         break;
