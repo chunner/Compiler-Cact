@@ -843,8 +843,19 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
     }
+    if (context->eqExp().size() == 1) {
+        return left;
+    }
     auto land = left;
+    std::string finalLabel = newLabel("land_final");
+    std::vector<std::pair<std::string, std::string>> phiSources;
     for (int i = 1; i < context->eqExp().size(); i++) {
+        std::string nextLabel = newLabel("land_next");
+        currentBlock->addInstruction("br i1 " + left.name + ", label %" + nextLabel + ", label %" + finalLabel);
+        phiSources.emplace_back("false", currentBlock->label);
+        currentBlock = new LLVMBasicBlock(nextLabel);
+        currentFunction->addBasicBlock(currentBlock);
+
         auto right = std::any_cast<LLVMValue>(visitEqExp(context->eqExp(i)));
         if (right.type.baseType != BaseType::I1) {
             std::string newright = "%" + newSSA("land");
@@ -856,7 +867,21 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         currentBlock->addInstruction(land.name + " = and i1 " + left.name + ", " + right.name);
         left = land;
     }
-    return land;
+    currentBlock->addInstruction("br label %" + finalLabel);
+    phiSources.emplace_back(land.name, currentBlock->label);
+    currentBlock = new LLVMBasicBlock(finalLabel);
+    std::string phiName = "%" + newSSA("land_phi");
+    std::stringstream phiSS;
+    phiSS << phiName << " = phi i1 ";
+    for (const auto &source : phiSources) {
+        phiSS << "[" << source.first << ", %" << source.second << "]";
+        if (&source != &phiSources.back()) {
+            phiSS << ", ";
+        }
+    }
+    currentBlock->addInstruction(phiSS.str());
+    currentFunction->addBasicBlock(currentBlock);
+    return LLVMValue(phiName, VarType(BaseType::I1));
 }
 std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     auto left = std::any_cast<LLVMValue>(visitLAndExp(context->lAndExp(0)));
@@ -866,8 +891,19 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
     }
+    if (context->lAndExp().size() == 1) {
+        return left;
+    }
     auto lor = left;
+    std::string finalLabel = newLabel("lor_final");
+    std::vector<std::pair<std::string, std::string>> phiSources;
     for (int i = 1; i < context->lAndExp().size(); i++) {
+        std::string nextLabel = newLabel("lor_next");
+        currentBlock->addInstruction("br i1 " + left.name + ", label %" + finalLabel + ", label %" + nextLabel);
+        phiSources.emplace_back("true", currentBlock->label);
+        currentBlock = new LLVMBasicBlock(nextLabel);
+        currentFunction->addBasicBlock(currentBlock);
+
         auto right = std::any_cast<LLVMValue>(visitLAndExp(context->lAndExp(i)));
         if (right.type.baseType != BaseType::I1) {
             std::string newright = "%" + newSSA("lor");
@@ -879,7 +915,21 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         currentBlock->addInstruction(lor.name + " = or i1 " + left.name + ", " + right.name);
         left = lor;
     }
-    return lor;
+    currentBlock->addInstruction("br label %" + finalLabel);
+    phiSources.emplace_back(lor.name, currentBlock->label);
+    currentBlock = new LLVMBasicBlock(finalLabel);
+    currentFunction->addBasicBlock(currentBlock);
+    std::string phiName = "%" + newSSA("lor_phi");
+    std::stringstream phiSS;
+    phiSS << phiName << " = phi i1 ";
+    for (const auto &source : phiSources) {
+        phiSS << "[" << source.first << ", %" << source.second << "]";
+        if (&source != &phiSources.back()) {
+            phiSS << ", ";
+        }
+    }
+    currentBlock->addInstruction(phiSS.str());
+    return LLVMValue(phiName, VarType(BaseType::I1));
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
     if (context->DECIMAL_CONST()) {
