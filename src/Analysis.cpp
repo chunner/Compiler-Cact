@@ -523,9 +523,9 @@ std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
     auto num = std::any_cast<LLVMValue>(visitNumber(context->number()));
     if (context->MINUS()) {
         std::stringstream ss;
-        ss << "sub " << TypeToLLVM(num.type) << " 0, " << num.name;
         std::string negated = "%" + newSSA("negated");
-        currentBlock->addInstruction(ss.str() + " to " + negated);
+        ss << negated << " = sub " << TypeToLLVM(num.type) << " 0, " << num.name;
+        currentBlock->addInstruction(ss.str());
         return LLVMValue(negated, num.type);
     } else {
         return num; // just return the number
@@ -820,6 +820,7 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
             currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
             left.name = newleft;
             left.type = VarType(BaseType::I1); // convert to boolean type
+            eq = left;
         }else if(left.type.baseType == BaseType::I1 && right.type.baseType == BaseType::I32) {
             std::string newright = "%" + newSSA("eq");
             currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
