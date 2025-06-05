@@ -815,6 +815,18 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
         return eq;
     } else if (context->relExp().size() == 2) {
         auto right = std::any_cast<LLVMValue>(visitRelExp(context->relExp(1)));
+        if (left.type.baseType == BaseType::I32 && right.type.baseType == BaseType::I1) {
+            std::string newleft = "%" + newSSA("eq");
+            currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
+            left.name = newleft;
+            left.type = VarType(BaseType::I1); // convert to boolean type
+        }else if(left.type.baseType == BaseType::I1 && right.type.baseType == BaseType::I32) {
+            std::string newright = "%" + newSSA("eq");
+            currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
+            right.name = newright;
+            right.type = VarType(BaseType::I1); // convert to boolean type
+        }
+
         if (left.type.baseType != right.type.baseType || !left.type.dimSizes.empty() || !right.type.dimSizes.empty()) {
             std::cerr << "Error: Type mismatch in equality expression! Expected " << TypeToLLVM(left.type) << ", got " << TypeToLLVM(right.type) << std::endl;
             exit(EXIT_FAILURE);
