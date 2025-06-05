@@ -829,15 +829,23 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
     for (int i = 1; i < context->mulExp().size(); i++) {
         std::stringstream ss;
         auto right = std::any_cast<LLVMValue>(visitMulExp(context->mulExp(i)));
-        if (left.type.baseType != right.type.baseType || !left.type.dimSizes.empty() || !right.type.dimSizes.empty()) {
+        if (left.type.baseType != right.type.baseType) {
             std::cerr << "Error: Type mismatch in addition! Expected " << TypeToLLVM(left.type) << ", got " << TypeToLLVM(right.type) << std::endl;
             exit(EXIT_FAILURE);
         }
         sum.name = "%" + newSSA("sum");
         if (context->addOp(i - 1)->PLUS()) {
-            ss << sum.name << " = add " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            if (left.type.baseType == BaseType::FLOAT || left.type.baseType == BaseType::DOUBLE) {
+                ss << sum.name << " = fadd " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            } else {
+                ss << sum.name << " = add " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            }
         } else if (context->addOp(i - 1)->MINUS()) {
-            ss << sum.name << " = sub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            if (left.type.baseType == BaseType::FLOAT || left.type.baseType == BaseType::DOUBLE) {
+                ss << sum.name << " = fsub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            } else {
+                ss << sum.name << " = sub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
+            }
         }
         currentBlock->addInstruction(ss.str());
         left = sum;
