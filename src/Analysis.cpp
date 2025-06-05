@@ -661,15 +661,11 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             return LLVMValue(neg, right.type);
         } else if (context->unaryOp()->NOT()) {
             auto right = std::any_cast<LLVMValue> (visitUnaryExp(context->unaryExp()));
-            if (right.type.baseType != BaseType::I1 || !right.type.dimSizes.empty()) {
-                std::cerr << "Error: Type mismatch in unary NOT! Expected i1, got " << TypeToLLVM(right.type) << std::endl;
-                exit(EXIT_FAILURE);
-            }
             std::string notssa = "%" + newSSA("not");
             std::stringstream ss;
             ss << notssa << " = icmp eq " << TypeToLLVM(right.type) << " " << right.name << ", 0";
             currentBlock->addInstruction(ss.str());
-            return LLVMValue(notssa, VarType(BaseType::I1, true /*is Const*/));
+            return LLVMValue(notssa, VarType(BaseType::I1));
         } else {
             std::cerr << "Error: Unknown unary operator!" << std::endl;
             exit(EXIT_FAILURE);
@@ -842,17 +838,19 @@ std::any Analysis::visitEqOp(CactParser::EqOpContext *context) {
 std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     auto left = std::any_cast<LLVMValue>(visitEqExp(context->eqExp(0)));
     if (left.type.baseType != BaseType::I1) {
-        left.name = "%" + newSSA("land");
-        currentBlock->addInstruction(left.name + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
+        std::string newleft = "%" + newSSA("land");
+        currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
+        left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
     }
     auto land = left;
     for (int i = 1; i < context->eqExp().size(); i++) {
         auto right = std::any_cast<LLVMValue>(visitEqExp(context->eqExp(i)));
         if (right.type.baseType != BaseType::I1) {
-            right.name = "%" + newSSA("land");
+            std::string newright = "%" + newSSA("land");
+            currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
+            right.name = newright;
             right.type = VarType(BaseType::I1); // convert to boolean type
-            currentBlock->addInstruction(right.name + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
         }
         land.name = "%" + newSSA("land");
         currentBlock->addInstruction(land.name + " = and i1 " + left.name + ", " + right.name);
@@ -863,17 +861,19 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
 std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     auto left = std::any_cast<LLVMValue>(visitLAndExp(context->lAndExp(0)));
     if (left.type.baseType != BaseType::I1) {
-        left.name = "%" + newSSA("lor");
+        std::string newleft = "%" + newSSA("lor");
+        currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
+        left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
-        currentBlock->addInstruction(left.name + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
     }
     auto lor = left;
     for (int i = 1; i < context->lAndExp().size(); i++) {
         auto right = std::any_cast<LLVMValue>(visitLAndExp(context->lAndExp(i)));
         if (right.type.baseType != BaseType::I1) {
-            right.name = "%" + newSSA("lor");
+            std::string newright = "%" + newSSA("lor");
+            currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
+            right.name = newright;
             right.type = VarType(BaseType::I1); // convert to boolean type
-            currentBlock->addInstruction(right.name + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
         }
         lor.name = "%" + newSSA("lor");
         currentBlock->addInstruction(lor.name + " = or i1 " + left.name + ", " + right.name);
