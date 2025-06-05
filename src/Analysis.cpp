@@ -546,13 +546,13 @@ std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
                 ss << "0x" << std::hex << std::uppercase << bits;
                 return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
             } else if (currentBType == BaseType::FLOAT) {
-                float value = std::stof(literal);
+                double value = std::stod(literal);
                 value = -value; // negate the value
-                uint32_t bits;
-                std::memcpy(&bits, &value, sizeof(float)) ;
-                uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
+                uint64_t bits;
+                std::memcpy(&bits, &value, sizeof(double));
+                bits = bits & 0xFFFFFFFF00000000ULL;
                 std::stringstream ss;
-                ss << "0x" << std::hex << std::uppercase << bits64;
+                ss << "0x" << std::hex << std::uppercase << bits;
                 return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
             }
         } else {
@@ -582,12 +582,12 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
             ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
         } else {
-            float value = std::stof(literal);
-            uint32_t bits;
-            std::memcpy(&bits, &value, sizeof(float));
-            uint64_t bits64 = static_cast<uint64_t>(bits) << 32; // convert to 64-bit representation
+            double value = std::stod(literal);
+            uint64_t bits;
+            std::memcpy(&bits, &value, sizeof(double));
+            bits = bits & 0xFFFFFFFF00000000ULL;
             std::stringstream ss;
-            ss << "0x" << std::hex << std::uppercase << bits64;
+            ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
         }
     } else if (context->CharConst()) {
@@ -617,17 +617,17 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         if (currentBType == BaseType::DOUBLE) {
             double value = std::stod(hexFloat);
             uint64_t bits;
-            std::memcpy(&value, &bits, sizeof(double));
+            std::memcpy(&bits, &value, sizeof(double));
             std::stringstream ss;
             ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
         } else {
-            float value = std::stof(hexFloat);
-            uint32_t bits;
-            std::memcpy(&value, &bits, sizeof(float));
+            double value = std::stod(hexFloat);
+            uint64_t bits;
+            std::memcpy(&bits, &value, sizeof(double));
+            bits = bits & 0xFFFFFFFF00000000ULL;
             std::stringstream ss;
-            uint64_t bits64 = static_cast<uint64_t>(bits) << 32; // convert to 64-bit representation
-            ss << "0x" << std::hex << std::uppercase << bits64;
+            ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
         }
     } else {
