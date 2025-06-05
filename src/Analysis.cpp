@@ -549,7 +549,7 @@ std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
                 float value = std::stof(literal);
                 value = -value; // negate the value
                 uint32_t bits;
-                std::memcpy(&bits, &value, sizeof(float));
+                std::memcpy(&bits, &value, sizeof(float)) ;
                 uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
                 std::stringstream ss;
                 ss << "0x" << std::hex << std::uppercase << bits64;
@@ -574,21 +574,21 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         } else {
             literal = context->EXPONENT()->getText();
         }
-        if (currentBType == BaseType::FLOAT) {
-            float value = std::stof(literal);
-            uint32_t bits;
-            std::memcpy(&bits, &value, sizeof(float));
-            uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
-            std::stringstream ss;
-            ss << "0x" << std::hex << std::uppercase << bits64;
-            return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
-        } else {
+        if (currentBType == BaseType::DOUBLE) {
             double value = std::stod(literal);
             uint64_t bits;
             std::memcpy(&bits, &value, sizeof(double));
             std::stringstream ss;
             ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
+        } else {
+            float value = std::stof(literal);
+            uint32_t bits;
+            std::memcpy(&bits, &value, sizeof(float));
+            uint64_t bits64 = static_cast<uint64_t>(bits) << 32; // convert to 64-bit representation
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::uppercase << bits64;
+            return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
         }
     } else if (context->CharConst()) {
         std::string ch = context->CharConst()->getText();
@@ -614,21 +614,21 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
         }
     } else if (context->HexFloat()) {
         std::string hexFloat = context->HexFloat()->getText();
-        if (currentBType == BaseType::FLOAT) {
-            float value = std::stof(hexFloat);
-            uint32_t bits;
-            std::memcpy(&value, &bits, sizeof(float));
-            uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
-            std::stringstream ss;
-            ss << "0x" << std::hex << std::uppercase << bits64;
-            return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
-        } else {
+        if (currentBType == BaseType::DOUBLE) {
             double value = std::stod(hexFloat);
             uint64_t bits;
             std::memcpy(&value, &bits, sizeof(double));
             std::stringstream ss;
             ss << "0x" << std::hex << std::uppercase << bits;
             return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
+        } else {
+            float value = std::stof(hexFloat);
+            uint32_t bits;
+            std::memcpy(&value, &bits, sizeof(float));
+            std::stringstream ss;
+            uint64_t bits64 = static_cast<uint64_t>(bits) << 32; // convert to 64-bit representation
+            ss << "0x" << std::hex << std::uppercase << bits64;
+            return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
         }
     } else {
         std::cerr << "Error: Unknown number type!" << std::endl;
@@ -853,22 +853,41 @@ std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
         return rel;
     } else if (context->addExp().size() == 2) {
         auto right = std::any_cast<LLVMValue>(visitAddExp(context->addExp(1)));
-        if (left.type.baseType != right.type.baseType || !left.type.dimSizes.empty() || !right.type.dimSizes.empty()) {
+        if (left.type.baseType != right.type.baseType) {
             std::cerr << "Error: Type mismatch in relational expression! Expected " << TypeToLLVM(left.type) << ", got " << TypeToLLVM(right.type) << std::endl;
             exit(EXIT_FAILURE);
         }
-        rel.name = "%" + newSSA("rel");
-        if (context->relOp()->LT()) {
-            currentBlock->addInstruction(rel.name + " = icmp slt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-        } else if (context->relOp()->GT()) {
-            currentBlock->addInstruction(rel.name + " = icmp sgt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-        } else if (context->relOp()->GE()) {
-            currentBlock->addInstruction(rel.name + " = icmp sge " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-        } else if (context->relOp()->LE()) {
-            currentBlock->addInstruction(rel.name + " = icmp sle " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+        if (left.type.baseType == BaseType::I32 || left.type.baseType == BaseType::I1 || left.type.baseType == BaseType::I8) {
+            rel.name = "%" + newSSA("rel");
+            if (context->relOp()->LT()) {
+                currentBlock->addInstruction(rel.name + " = icmp slt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->GT()) {
+                currentBlock->addInstruction(rel.name + " = icmp sgt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->GE()) {
+                currentBlock->addInstruction(rel.name + " = icmp sge " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->LE()) {
+                currentBlock->addInstruction(rel.name + " = icmp sle " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            }
+            rel.type = VarType(BaseType::I1);
+            return rel;
+        } else if (left.type.baseType == BaseType::DOUBLE || left.type.baseType == BaseType::FLOAT) {
+            rel.name = "%" + newSSA("rel");
+            if (context->relOp()->LT()) {
+                currentBlock->addInstruction(rel.name + " = fcmp olt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->GT()) {
+                currentBlock->addInstruction(rel.name + " = fcmp ogt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->GE()) {
+                currentBlock->addInstruction(rel.name + " = fcmp oge " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            } else if (context->relOp()->LE()) {
+                currentBlock->addInstruction(rel.name + " = fcmp ole " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
+            }
+            rel.type = VarType(BaseType::I1);
+            return rel;
+        } else {
+            std::cerr << "Error: Type mismatch in relational expression! Expected i32 or float/double, got " << TypeToLLVM(left.type) << std::endl;
+            exit(EXIT_FAILURE);
+
         }
-        rel.type = VarType(BaseType::I1);
-        return rel;
     }
 }
 std::any Analysis::visitRelOp(CactParser::RelOpContext *context) {
@@ -886,7 +905,7 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
             left.name = newleft;
             left.type = VarType(BaseType::I1); // convert to boolean type
             eq = left;
-        }else if(left.type.baseType == BaseType::I1 && right.type.baseType == BaseType::I32) {
+        } else if (left.type.baseType == BaseType::I1 && right.type.baseType == BaseType::I32) {
             std::string newright = "%" + newSSA("eq");
             currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
             right.name = newright;
