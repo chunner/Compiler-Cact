@@ -42,7 +42,7 @@ elseStmt    : ELSE_KW stmt;
 exp         : addExp;     
 cond        : lOrExp;
 lVal        : IDENT (L_BRACKET exp R_BRACKET)*;
-number      : intConst | FloatConst | EXPONENT | CharConst;
+number      : intConst | FloatConst | EXPONENT | HexFloat | CharConst;
 signedNumber: (PLUS | MINUS)? number;
 funcRParams : exp (COMMA exp)*;
 
@@ -107,6 +107,7 @@ OCTAL_CONST : '0' [0-7]*;
 HEXADECIMAL_CONST: ('0x' | '0X') [0-9a-fA-F]+;
 FloatConst  : [0-9]* '.' [0-9]+ [fF]? | [0-9]+ '.' [0-9]* [Ff]?;
 EXPONENT    : (FloatConst|DECIMAL_CONST) [eE] [+\-]? [0-9]+ [fF]?;
+HexFloat    : ('0x' | '0X') [0-9a-fA-F]* '.' [0-9a-fA-F]* [pP] [+\-]? [0-9]+ [fF]?;
 CharConst   : '\'' REGULAR_CHAR '\'';
 
 STRING      : DOUBLE_QUOTE REGULAR_CHAR*? DOUBLE_QUOTE;

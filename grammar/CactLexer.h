@@ -19,11 +19,12 @@ public:
     BOOL_KW = 6, VOID_KW = 7, IF_KW = 8, ELSE_KW = 9, WHILE_KW = 10, BREAK_KW = 11, 
     CONTINUE_KW = 12, RETURN_KW = 13, FALSE = 14, TRUE = 15, IDENT = 16, 
     DECIMAL_CONST = 17, OCTAL_CONST = 18, HEXADECIMAL_CONST = 19, FloatConst = 20, 
-    EXPONENT = 21, CharConst = 22, STRING = 23, PLUS = 24, MINUS = 25, NOT = 26, 
-    MUL = 27, DIV = 28, MOD = 29, ASSIGN = 30, EQ = 31, NEQ = 32, GT = 33, 
-    LT = 34, GE = 35, LE = 36, AND = 37, OR = 38, L_PAREN = 39, R_PAREN = 40, 
-    L_BRACE = 41, R_BRACE = 42, L_BRACKET = 43, R_BRACKET = 44, COMMA = 45, 
-    SEMICOLON = 46, DOUBLE_QUOTE = 47, WS = 48, LineComment = 49, BlockComment = 50
+    EXPONENT = 21, HexFloat = 22, CharConst = 23, STRING = 24, PLUS = 25, 
+    MINUS = 26, NOT = 27, MUL = 28, DIV = 29, MOD = 30, ASSIGN = 31, EQ = 32, 
+    NEQ = 33, GT = 34, LT = 35, GE = 36, LE = 37, AND = 38, OR = 39, L_PAREN = 40, 
+    R_PAREN = 41, L_BRACE = 42, R_BRACE = 43, L_BRACKET = 44, R_BRACKET = 45, 
+    COMMA = 46, SEMICOLON = 47, DOUBLE_QUOTE = 48, WS = 49, LineComment = 50, 
+    BlockComment = 51
   };
 
   explicit CactLexer(antlr4::CharStream *input);

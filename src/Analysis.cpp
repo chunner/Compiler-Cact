@@ -269,6 +269,14 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, parameters[i].name));
     }
     visitBlock(context->block());
+    if (currentBlock->instructions.empty() || currentBlock->instructions.back().find("ret") == std::string::npos) {
+        // if the function does not return, add a return instruction
+        if (retBT == BaseType::VOID) {
+            currentBlock->addInstruction("ret void");
+        } else {
+            currentBlock->addInstruction("ret " + BTypeToLLVM(retBT) + " 0");
+        }
+    }
     // visit the body end
     isGlobal = true;
     currentSymbolTable = currentSymbolTable->getParent();
@@ -522,11 +530,35 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
 std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
     auto num = std::any_cast<LLVMValue>(visitNumber(context->number()));
     if (context->MINUS()) {
-        std::stringstream ss;
-        std::string negated = "%" + newSSA("negated");
-        ss << negated << " = sub " << TypeToLLVM(num.type) << " 0, " << num.name;
-        currentBlock->addInstruction(ss.str());
-        return LLVMValue(negated, num.type);
+        if (context->number()->intConst()) {
+            std::string intVal = num.name;
+            int value = std::stoi(intVal);
+            value = -value; // negate the value
+            return LLVMValue(std::to_string(value), VarType(BaseType::I32, true /*is const*/));
+        } else if (context->number()->FloatConst() || context->number()->EXPONENT() || context->number()->HexFloat()) {
+            std::string literal = num.name;
+            if (currentBType == BaseType::DOUBLE) {
+                double value = std::stod(literal);
+                value = -value; // negate the value
+                uint64_t bits;
+                std::memcpy(&bits, &value, sizeof(double));
+                std::stringstream ss;
+                ss << "0x" << std::hex << std::uppercase << bits;
+                return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
+            } else if (currentBType == BaseType::FLOAT) {
+                float value = std::stof(literal);
+                value = -value; // negate the value
+                uint32_t bits;
+                std::memcpy(&bits, &value, sizeof(float));
+                uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
+                std::stringstream ss;
+                ss << "0x" << std::hex << std::uppercase << bits64;
+                return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
+            }
+        } else {
+            std::cerr << "Error: Unknown signed number type!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     } else {
         return num; // just return the number
     }
@@ -580,8 +612,26 @@ std::any Analysis::visitNumber(CactParser::NumberContext *context) {
             std::cerr << "Error: Invalid character constant!" << std::endl;
             exit(EXIT_FAILURE);
         }
+    } else if (context->HexFloat()) {
+        std::string hexFloat = context->HexFloat()->getText();
+        if (currentBType == BaseType::FLOAT) {
+            float value = std::stof(hexFloat);
+            uint32_t bits;
+            std::memcpy(&value, &bits, sizeof(float));
+            uint64_t bits64 = static_cast<uint64_t>(bits) << 32;
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::uppercase << bits64;
+            return LLVMValue(ss.str(), VarType(BaseType::FLOAT, true /*is Const*/));
+        } else {
+            double value = std::stod(hexFloat);
+            uint64_t bits;
+            std::memcpy(&value, &bits, sizeof(double));
+            std::stringstream ss;
+            ss << "0x" << std::hex << std::uppercase << bits;
+            return LLVMValue(ss.str(), VarType(BaseType::DOUBLE, true /*is Const*/));
+        }
     } else {
-        std::cerr << "Error: Unknown number!" << std::endl;
+        std::cerr << "Error: Unknown number type!" << std::endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -656,7 +706,22 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             auto right = std::any_cast<LLVMValue>(visitUnaryExp(context->unaryExp()));
             std::string neg = "%" + newSSA("neg");
             std::stringstream ss;
-            ss << neg << " = sub " << TypeToLLVM(right.type) << " 0, " << right.name;
+            if (right.type.baseType == BaseType::I1) {
+                std::string newright = "%" + newSSA("cast");
+                ss << newright << " = zext " << TypeToLLVM(right.type) << " " << right.name << " to i32";
+                currentBlock->addInstruction(ss.str());
+                ss.str("");
+                right.name = newright;
+                right.type.baseType = BaseType::I32; // cast to i32 for negation
+            }
+            if (right.type.baseType == BaseType::I32) {
+                ss << neg << " = sub " << TypeToLLVM(right.type) << " 0, " << right.name;
+            } else if (right.type.baseType == BaseType::FLOAT || right.type.baseType == BaseType::DOUBLE) {
+                ss << neg << " = fsub " << TypeToLLVM(right.type) << " 0.0, " << right.name;
+            } else {
+                std::cerr << "Error: Unsupported type for unary minus!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
             currentBlock->addInstruction(ss.str());
             return LLVMValue(neg, right.type);
         } else if (context->unaryOp()->NOT()) {
