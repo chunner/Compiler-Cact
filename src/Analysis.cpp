@@ -90,7 +90,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
             ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
-            std::string globalcast = "%" + newSSA("cast_i8_" + globalid);
+            std::string globalcast = "%" + newSSA("cast_i8_global");
             ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
@@ -208,7 +208,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
-                std::string globalcast = newSSA("cast_i8_" + globalid);
+                std::string globalcast = "%" + newSSA("cast_i8_global");
                 ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
@@ -542,10 +542,19 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         }
         std::string ptr = "%" + newSSA("ptr");
         std::stringstream ss;
-        ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
-        ss << ", i32 0"; // base address
-        for (const auto &idx : index) {
-            ss << ", i32 " << idx; // add index
+        if (s->type.dimSizes[0] == -1) {
+            std::string type = TypeToLLVM(s->type);
+            type.pop_back(); // delete *
+            ss << ptr << " = getelementptr inbounds " << type << ", " << "ptr " << identssa;
+            for (const auto &idx : index) {
+                ss << ", i32 " << idx; // add index
+            }
+        } else {
+            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
+            ss << ", i32 0"; // base address
+            for (const auto &idx : index) {
+                ss << ", i32 " << idx; // add index
+            }
         }
         currentBlock->addInstruction(ss.str());
         return LLVMValue(ptr, VarType(s->type.baseType));
@@ -666,7 +675,11 @@ std::any Analysis::visitFuncRParams(CactParser::FuncRParamsContext *context) {
     std::stringstream ss;
     for (int i = 0; i < context->exp().size(); i++) {
         auto param = std::any_cast<LLVMValue>(visitExp(context->exp(i)));
-        ss << TypeToLLVM(param.type) << " " << param.name;
+        ss << TypeToLLVM(param.type);
+        if (param.type.isArray()) {
+            ss << "*";
+        }
+        ss << " " << param.name;
         if (i != context->exp().size() - 1) {
             ss << ", ";
         }
@@ -701,10 +714,19 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             }
             std::string ptr = "%" + newSSA("ptr");
             std::stringstream ss;
-            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* "<< identssa;
-            ss << ", i32 0"; // base address
-            for (const auto &idx : index) {
-                ss << ", i32 " << idx; // add index
+            if (s->type.dimSizes[0] == -1) {
+                std::string type = TypeToLLVM(s->type);
+                type.pop_back(); // delete *
+                ss << ptr << " = getelementptr inbounds " << type << ", " << "ptr " << identssa;
+                for (const auto &idx : index) {
+                    ss << ", i32 " << idx; // add index
+                }
+            } else {
+                ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
+                ss << ", i32 0"; // base address
+                for (const auto &idx : index) {
+                    ss << ", i32 " << idx; // add index
+                }
             }
             currentBlock->addInstruction(ss.str());
             std::string load = "%" + newSSA("load");
@@ -767,7 +789,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
-        Symbol* s = currentSymbolTable->lookup(ident, true /*is function*/);
+        Symbol *s = currentSymbolTable->lookup(ident, true /*is function*/);
         if (s == nullptr) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);

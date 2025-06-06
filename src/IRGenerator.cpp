@@ -81,7 +81,8 @@ std::string LLVMFunction::toString()const {
     std::stringstream ss;
     ss << "define " << returnType << " @" << name << "(";
     for (size_t i = 0; i < parameters.size(); ++i) {
-        ss << TypeToLLVM(parameters[i].type) << " " << "%" << parameters[i].name;
+        std::string type = parameters[i].type.isArray() ? "ptr" : TypeToLLVM(parameters[i].type);
+        ss << type << " " << "%" << parameters[i].name;
         if (i < parameters.size() - 1) {
             ss << ", ";
         }
@@ -108,7 +109,7 @@ LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initVal
         }
         ss << ")\n";
     } else {
-        ss << "@" << name << " =";
+        ss << name << " =";
         if (isConstant) {
             ss << " constant";
         } else {

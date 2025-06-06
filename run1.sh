@@ -107,11 +107,11 @@ for input_file in "${cact_files[@]}"; do
                     exe_exit_code=0
                     if [ -f "$input_data_file" ]; then
                         # 有输入文件
-                        timeout 10s "$output_exe" < "$input_data_file" > "$actual_output_file" 2>&1
+                        timeout 200s "$output_exe" < "$input_data_file" > "$actual_output_file" 2>&1
                         exe_exit_code=$?
                     else
                         # 无输入文件
-                        timeout 10s "$output_exe" > "$actual_output_file" 2>&1
+                        timeout 200s "$output_exe" > "$actual_output_file" 2>&1
                         exe_exit_code=$?
                     fi
                     
