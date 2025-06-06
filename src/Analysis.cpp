@@ -10,7 +10,7 @@ std::any Analysis::visitCompUnit(CactParser::CompUnitContext *context) {
     addBuiltinFunc();
     visitChildren(context);
     // check if the main function is defined
-    if (!currentSymbolTable->lookup("main", true /*is function*/).first) {
+    if (!currentSymbolTable->lookupInCurrentScope("main", true /*is function*/)) {
         std::cerr << "Error: main function not defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -21,9 +21,6 @@ std::any Analysis::visitDecl(CactParser::DeclContext *context) {
         visitConstDecl(context->constDecl());
     } else if (context->varDecl()) {
         visitVarDecl(context->varDecl());
-    } else {
-        std::cerr << "Error: Unknown declaration type!" << std::endl;
-        exit(EXIT_FAILURE);
     }
     return 0;
 }
@@ -40,13 +37,10 @@ std::any Analysis::visitBType(CactParser::BTypeContext *context) {
     if (context->CHAR_KW()) return BaseType::I8;
     if (context->FLOAT_KW()) return BaseType::FLOAT;
     if (context->BOOL_KW()) return BaseType::I1;
-    std::cerr << "Error (visitBType): Unknown type!" << std::endl;
-    exit(EXIT_FAILURE);
 }
 std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
     std::string ident = context->IDENT()->getText();
-    bool defined = currentSymbolTable->lookupInCurrentScope(ident);
-    if (defined) { // check if the identifier is already defined
+    if (currentSymbolTable->lookupInCurrentScope(ident)) { // check if the identifier is already defined
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -60,43 +54,50 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         exit(EXIT_FAILURE);
     }
     VarType currentT = VarType(currentBType, true /*is Const*/, false /*not function*/, dimSize);
-    std::string ssa = newSSA(ident);
-    currentSymbolTable->define(Symbol(ident, currentT, ssa));
-    // generate LLVM code
     if (isGlobal) {
+        // get the initial value
         auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
         if (initval.type.baseType != currentBType) {
             std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
             exit(EXIT_FAILURE);
         }
+        // add to symbol table
+        std::string ssa = "@" + newSSA(ident);
+        currentSymbolTable->define(Symbol(ident, currentT, ssa, initval.name));
+        // gen llvm code
         LLVMGlobalVar globalVar(ssa, currentT, initval.name, true /* is Const*/);
         llvmmodule.addGlobalVar(globalVar);
     } else {
-        std::stringstream ss;
-        ss << "%" << ssa << " = alloca " << TypeToLLVM(currentT);
-        currentBlock->addInstruction(ss.str());
-        ss.str("");
+        // get the initial value
         auto initval = std::any_cast<LLVMValue> (visitConstInitVal(context->constInitVal()));
         if (initval.type.baseType != currentBType) {
             std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
             exit(EXIT_FAILURE);
         }
+        // add to symbol table
+        std::string ssa = "%" + newSSA(ident);
+        currentSymbolTable->define(Symbol(ident, currentT, ssa, initval.name));
+        // alocate memory
+        std::stringstream ss;
+        ss << ssa << " = alloca " << TypeToLLVM(currentT);
+        currentBlock->addInstruction(ss.str());
+        ss.str("");
         if (!dimSize.empty()) {
-            std::string globalid = newSSA("__const." + ident);
+            std::string globalid = "@" + newSSA("const_" + ident);
             LLVMGlobalVar globalVar(globalid, currentT, initval.name, true /* is Const*/);
             llvmmodule.addGlobalVar(globalVar);
-            std::string identcast = newSSA("cast." + ident);
-            ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
+            std::string identcast = "%" + newSSA("cast_i8_" + ident);
+            ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
-            std::string globalcast = newSSA("cast." + globalid);
-            ss << "%" << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* @" << globalid << " to i8*";
+            std::string globalcast = "%" + newSSA("cast_i8_" + globalid);
+            ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
             currentBlock->addInstruction(ss.str());
             ss << "";
-            ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
+            ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << identcast << ", i8* " << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
             currentBlock->addInstruction(ss.str());
         } else {
-            ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* %" << ssa;
+            ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* " << ssa;
             currentBlock->addInstruction(ss.str());
         }
     }
@@ -159,8 +160,7 @@ std::any Analysis::visitVarDecl(CactParser::VarDeclContext *context) {
 std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    bool defined = currentSymbolTable->lookupInCurrentScope(ident);
-    if (defined) {
+    if (currentSymbolTable->lookupInCurrentScope(ident)) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -170,10 +170,10 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         dimSize.push_back(std::stoi(std::any_cast<std::string>(visitIntConst(it))));
     }
     VarType currentT = VarType(currentBType, false /*not Const*/, false /*not function*/, dimSize);
-    std::string ssa = newSSA(ident);
-    currentSymbolTable->define(Symbol(ident, currentT, ssa));
-    // generate LLVM code
     if (isGlobal) {
+        std::string ssa = "@" + newSSA(ident);
+        currentSymbolTable->define(Symbol(ident, currentT, ssa));
+        // generate LLVM code
         if (context->constInitVal()) {
             auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
             if (initval.type.baseType != currentBType) {
@@ -187,8 +187,11 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
             llvmmodule.addGlobalVar(globalVar);
         }
     } else {
+        std::string ssa = "%" + newSSA(ident);
+        currentSymbolTable->define(Symbol(ident, currentT, ssa));
+        // alocate memory
         std::stringstream ss;
-        ss << "%" << ssa << " = alloca " << TypeToLLVM(currentT);
+        ss << ssa << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
         ss.str("");
         if (context->constInitVal()) {
@@ -198,21 +201,37 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 exit(EXIT_FAILURE);
             }
             if (!dimSize.empty()) {
-                std::string globalid = newSSA("__const." + ident);
-                LLVMGlobalVar globalVar(globalid, currentT, initval.name, false /* not Const*/);
+                std::string globalid = "@" + newSSA("__const." + ident);
+                LLVMGlobalVar globalVar(globalid, currentT, initval.name, true/* not Const*/);
                 llvmmodule.addGlobalVar(globalVar);
-                std::string identcast = newSSA("cast." + ident);
-                ss << "%" << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << "%" << ssa << " to i8*";
+                std::string identcast = "%" + newSSA("cast_i8_" + ident);
+                ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
-                std::string globalcast = newSSA("cast." + globalid);
-                ss << "%" << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* @" << globalid << " to i8*";
+                std::string globalcast = newSSA("cast_i8_" + globalid);
+                ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
                 currentBlock->addInstruction(ss.str());
                 ss.str("");
-                ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << "%" << identcast << ", i8* " << "%" << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
+                ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << identcast << ", i8* " << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());
             } else {
-                ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* %" << ssa;
+                ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* " << ssa;
+                currentBlock->addInstruction(ss.str());
+            }
+        } else {
+            if (dimSize.empty()) {
+                // if the variable is not initialized, we can just leave it as uninitialized
+                std::stringstream ss;
+                ss << "store " << TypeToLLVM(currentBType) << " 0, " << TypeToLLVM(currentBType) << "* " << ssa;
+                currentBlock->addInstruction(ss.str());
+            } else {
+                // if the variable is an array, we can just leave it as uninitialized
+                std::stringstream ss;
+                std::string identcast = "%" + newSSA("cast_" + ident);
+                ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
+                currentBlock->addInstruction(ss.str());
+                ss.str("");
+                ss << "call void @llvm.memset.p0i8.i32(i8* " << identcast << ", i8 0, i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());
             }
         }
@@ -228,13 +247,11 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         exit(EXIT_FAILURE);
     }
     // check if the identifier is already defined
-    bool defined = currentSymbolTable->lookupInCurrentScope(ident, true /*is function*/);
-    if (defined) {
+    if (currentSymbolTable->lookupInCurrentScope(ident, true /*is function*/)) {
         std::cerr << "Error: Identifier " << ident << " already defined!" << std::endl;
         exit(EXIT_FAILURE);
     }
     std::vector<LLVMValue> parameters;
-    std::vector<string> paramsT;
     if (context->funcFParams()) {
         // check if the main function has parameters
         if (ident == "main") {
@@ -242,15 +259,13 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
             exit(EXIT_FAILURE);
         }
         parameters = std::move(std::any_cast<std::vector<LLVMValue>>(visitFuncFParams(context->funcFParams())));
-        for (const auto &param : parameters) {
-            paramsT.push_back(TypeToLLVM(param.type));
-        }
     }
     LLVMFunction *function = new LLVMFunction(ident, BTypeToLLVM(retBT), parameters);
     currentFunction = function;
     // add symbol to symbol table
     VarType retT = VarType(retBT, false /*not Const*/, true /*is Function*/);
-    currentSymbolTable->define(Symbol(ident, retT, newSSA(ident), paramsT));
+    std::string functionssa = isGlobal ? "@" + newSSA(ident) : "%" + newSSA(ident);
+    currentSymbolTable->define(Symbol(ident, retT, functionssa, parameters));
     // generate LLVM code
     // visit the function body
     LLVMBasicBlock *block = new LLVMBasicBlock("entry");
@@ -260,13 +275,18 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
     currentSymbolTable = new SymbolTable(currentSymbolTable);
     /* load params */
     for (size_t i = 0; i < parameters.size(); ++i) {
-        std::stringstream ss;
-        ss << "%" << parameters[i].name << " = alloca " << TypeToLLVM(parameters[i].type);
-        currentBlock->addInstruction(ss.str());
-        ss.str("");
-        ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << "_params" << ", " << TypeToLLVM(parameters[i].type) << "* %" << parameters[i].name;
-        currentBlock->addInstruction(ss.str());
-        currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, parameters[i].name));
+        if (parameters[i].type.isArray()) {
+            currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, "%" + parameters[i].name));
+        } else {
+            std::stringstream ss;
+            std::string ssa = "%" + newSSA(parameters[i].name + "_local");
+            ss << ssa << " = alloca " << TypeToLLVM(parameters[i].type);
+            currentBlock->addInstruction(ss.str());
+            ss.str("");
+            ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* " << ssa;
+            currentBlock->addInstruction(ss.str());
+            currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, ssa));
+        }
     }
     visitBlock(context->block());
     if (currentBlock->instructions.empty() || currentBlock->instructions.back().find("ret") == std::string::npos) {
@@ -500,8 +520,7 @@ std::any Analysis::visitCond(CactParser::CondContext *context) {
 std::any Analysis::visitLVal(CactParser::LValContext *context) {
     std::string ident = context->IDENT()->getText();
     // check if the identifier is already defined
-    auto sp = currentSymbolTable->lookup(ident);
-    Symbol *s = sp.first;
+    Symbol *s = currentSymbolTable->lookup(ident);
     if (s == nullptr) {
         std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
         exit(EXIT_FAILURE);
@@ -523,7 +542,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         }
         std::string ptr = "%" + newSSA("ptr");
         std::stringstream ss;
-        ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << (sp.second ? "@" : "%") << identssa;
+        ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
         ss << ", i32 0"; // base address
         for (const auto &idx : index) {
             ss << ", i32 " << idx; // add index
@@ -531,7 +550,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
         currentBlock->addInstruction(ss.str());
         return LLVMValue(ptr, VarType(s->type.baseType));
     } else {
-        return LLVMValue((sp.second ? "@" : "%") + identssa, VarType(s->type.baseType));
+        return LLVMValue(identssa, VarType(s->type.baseType));
     }
 }
 std::any Analysis::visitSignedNumber(CactParser::SignedNumberContext *context) {
@@ -661,13 +680,16 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
-        auto s = currentSymbolTable->lookup(ident);
-        if (s.first == nullptr) {
+        Symbol *s = currentSymbolTable->lookup(ident);
+        if (s == nullptr) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
-        std::string identssa = s.first->ssa;
-        if (s.first->type.isArray()) {
+        std::string identssa = s->ssa;
+        if (s->type.isArray()) {
+            if (context->exp().empty()) {
+                return LLVMValue(identssa, s->type);
+            }
             std::vector<std::string> index;
             for (int i = 0; i < context->exp().size(); i++) {
                 auto exp = std::any_cast<LLVMValue>(visitExp(context->exp(i)));
@@ -679,7 +701,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             }
             std::string ptr = "%" + newSSA("ptr");
             std::stringstream ss;
-            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
+            ss << ptr << " = getelementptr inbounds " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* "<< identssa;
             ss << ", i32 0"; // base address
             for (const auto &idx : index) {
                 ss << ", i32 " << idx; // add index
@@ -687,15 +709,15 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             currentBlock->addInstruction(ss.str());
             std::string load = "%" + newSSA("load");
             ss.str("");
-            ss << load << " = load " << BTypeToLLVM(s.first->type.baseType) << ", " << BTypeToLLVM(s.first->type.baseType) << "* " << ptr;
+            ss << load << " = load " << BTypeToLLVM(s->type.baseType) << ", " << BTypeToLLVM(s->type.baseType) << "* " << ptr;
             currentBlock->addInstruction(ss.str());
-            return LLVMValue(load, VarType(s.first->type.baseType));
+            return LLVMValue(load, VarType(s->type.baseType));
         } else {
             std::string load = "%" + newSSA("load");
             std::stringstream ss;
-            ss << load << " = load " << TypeToLLVM(s.first->type) << ", " << TypeToLLVM(s.first->type) << "* " << (s.second ? "@" : "%") << identssa;
+            ss << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
             currentBlock->addInstruction(ss.str());
-            return LLVMValue(load, VarType(s.first->type.baseType));
+            return LLVMValue(load, VarType(s->type.baseType));
         }
     } else if (context->number()) {
         return (visitNumber(context->number()));
@@ -745,47 +767,41 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
     } else if (context->IDENT()) {
         std::string ident = context->IDENT()->getText();
         // check if the identifier is already defined
-        auto s = currentSymbolTable->lookup(ident, true /*is function*/);
-        if (s.first == nullptr) {
+        Symbol* s = currentSymbolTable->lookup(ident, true /*is function*/);
+        if (s == nullptr) {
             std::cerr << "Error: Identifier " << ident << " not defined!" << std::endl;
             exit(EXIT_FAILURE);
         }
         // call a function
         std::stringstream ss;
         std::string funcret;
-        if (s.first->type.baseType == BaseType::VOID) {
+        if (s->type.baseType == BaseType::VOID) {
             funcret = "";
             ss << "call void @" << ident << "(";
         } else {
             funcret = "%" + newSSA("ret");
-            ss << funcret << " = call " << TypeToLLVM(s.first->type) << " @" << ident << "(";
+            ss << funcret << " = call " << TypeToLLVM(s->type) << " @" << ident << "(";
         }
         if (context->funcRParams()) {
             auto params = std::any_cast<std::pair<std::string, std::vector<VarType>>>(visitFuncRParams(context->funcRParams()));
             auto paramsT = params.second;
-            if (paramsT.size() != s.first->params.size()) {
-                std::cerr << "Error: Function " << ident << " expects " << s.first->params.size() << " parameters, but got " << paramsT.size() << std::endl;
+            if (paramsT.size() != s->params.size()) {
+                std::cerr << "Error: Function " << ident << " expects " << s->params.size() << " parameters, but got " << paramsT.size() << std::endl;
                 exit(EXIT_FAILURE);
-            }
-            for (size_t i = 0; i < paramsT.size(); ++i) {
-                if (TypeToLLVM(paramsT[i]) != s.first->params[i]) {
-                    std::cerr << "Error: Function " << ident << " expects parameter of type " << s.first->params[i] << ", but got " << TypeToLLVM(paramsT[i]) << std::endl;
-                    exit(EXIT_FAILURE);
-                }
             }
             ss << params.first;
         } else {
-            if (!s.first->params.empty()) {
+            if (!s->params.empty()) {
                 std::cerr << "Error: Function " << ident << " expects parameters, but none were provided!" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
         ss << ")";
         currentBlock->addInstruction(ss.str());
-        if (s.first->type.baseType == BaseType::VOID) {
+        if (s->type.baseType == BaseType::VOID) {
             return LLVMValue("", VarType(BaseType::VOID, true /*is Const*/));
         } else {
-            return LLVMValue(funcret, s.first->type);
+            return LLVMValue(funcret, s->type);
         }
     } else {
         std::cerr << "Error: Unknown unary expression!" << std::endl;
@@ -1089,14 +1105,14 @@ std::string Analysis::newSSA(const std::string &prefix) {
     return prefix + std::to_string(ssaCounter++);
 }
 void Analysis::addBuiltinFunc() {
-    std::vector<std::string> paramsT;
-    paramsT.push_back("i32");
+    std::vector<LLVMValue> paramsT;
+    paramsT.push_back(LLVMValue("i32", VarType(BaseType::I32, false, false)));
     currentSymbolTable->define(Symbol("print_int", VarType(BaseType::VOID, false, true), ("print_int"), paramsT));
     paramsT.clear();
-    paramsT.push_back("float");
+    paramsT.push_back(LLVMValue("float", VarType(BaseType::FLOAT, false, false)));
     currentSymbolTable->define(Symbol("print_float", VarType(BaseType::VOID, false, true), ("print_float"), paramsT));
     paramsT.clear();
-    paramsT.push_back("i8");
+    paramsT.push_back(LLVMValue("i8", VarType(BaseType::I8, false, false)));
     currentSymbolTable->define(Symbol("print_char", VarType(BaseType::VOID, false, true), ("print_char"), paramsT));
     paramsT.clear();
     currentSymbolTable->define(Symbol("get_int", VarType(BaseType::I32, false, true), ("get_int"), paramsT));

@@ -16,6 +16,9 @@ int VarType::getArraySize()const {
             std::cerr << "Error: Unsupported base type for array size calculation!" << std::endl;
             exit(EXIT_FAILURE);
     }
+    if (dimSizes.empty()) {
+        return size; // scalar type
+    }
     for (int dim : dimSizes) {
         size *= dim;
     }
@@ -43,25 +46,25 @@ void SymbolTable::define(const Symbol &symbol) {
 }
 
 
-std::pair<Symbol *, bool> SymbolTable::lookup(const std::string &name, bool isFunction) {
+Symbol * SymbolTable::lookup(const std::string &name, bool isFunction) {
     if (isFunction) {
         if (func_table.find(name) != func_table.end()) {
-            return std::make_pair(&func_table[name], isGlobal());
+            return &func_table[name];
         } else {
             if (parent) {
                 return parent->lookup(name, isFunction);
             } else {
-                return std::make_pair(nullptr, false);
+                return nullptr;
             }
         }
     } else {
         if (var_table.find(name) != var_table.end()) {
-            return std::make_pair(&var_table[name], isGlobal());
+            return &var_table[name];
         } else {
             if (parent) {
                 return parent->lookup(name, isFunction);
             } else {
-                return std::make_pair(nullptr, false);
+                return nullptr;
             }
         }
     }

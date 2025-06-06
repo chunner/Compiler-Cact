@@ -5,17 +5,14 @@
 #include <vector>
 #include <sstream>
 #include <variant>
-#include <SymbolTable.h>
+#include "Types.h"
+
+
 
 std::string TypeToLLVM(const VarType &type);
 std::string BTypeToLLVM(const BaseType &type);
 
-struct LLVMValue {
-    std::string name;
-    VarType type;
 
-    LLVMValue(std::string name, VarType type) : name(name), type(type) {}
-};
 
 class LLVMBasicBlock {
 public:

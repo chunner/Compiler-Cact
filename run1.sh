@@ -1,7 +1,7 @@
 #!/bin/bash
 # filepath: /home/skyward/cact/run1.sh
 
-TEST_DIR="test/testcases/functional"
+TEST_DIR="test/testcases/performance"
 RUNTIME_LIB="libcact/libcactio.a"
 
 # 创建必要的目录
@@ -54,6 +54,7 @@ for input_file in "${cact_files[@]}"; do
     output_s="build/result/${filename}.s"
     output_exe="build/result/${filename}"
     actual_output_file="build/result/${filename}.actual"
+    tree_file="build/result/${filename}.tree"
     
     echo -e "[$TOTAL] Processing: $input_file" | tee -a "$LOG_FILE"
     TOTAL=$((TOTAL + 1))
@@ -68,7 +69,7 @@ for input_file in "${cact_files[@]}"; do
     
     # 步骤1: 编译到LLVM IR
     echo "  Step 1: Compiling to LLVM IR..." | tee -a "$LOG_FILE"
-    if timeout 30s ./build/compiler "$input_file" "$output_ll" 2>&1 | tee -a "$LOG_FILE"; then
+    if timeout 30s ./build/compiler "$input_file" "$output_ll" 2>> "$LOG_FILE" | tee -a "$tree_file"; then
         if [ -f "$output_ll" ] && [ -s "$output_ll" ]; then
             echo -e "  ✅ Compiler succeeded" | tee -a "$LOG_FILE"
             
@@ -132,7 +133,7 @@ for input_file in "${cact_files[@]}"; do
                     # 检查输出文件是否有内容，如果有则在exit code前加换行
                     if [ -s "$actual_output_file" ]; then
                         # 文件非空，说明有print输出，加换行
-                        echo "" >> "$actual_output_file"
+                        #echo "" >> "$actual_output_file"
                         echo "$exe_exit_code" >> "$actual_output_file"
                     else
                         # 文件为空，说明没有print输出，直接添加exit code
