@@ -95,9 +95,7 @@ std::string LLVMFunction::toString()const {
     return ss.str();
 }
 
-std::string LLVMFunction::newTmp(std::string prefix) {
-    return prefix + std::to_string(tmpCounter++);
-}
+
 
 // =============== Global Variable
 LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant) {

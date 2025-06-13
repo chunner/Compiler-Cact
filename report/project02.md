@@ -19,7 +19,7 @@ src/
 中间代码生成的核心实现在Analysis.cpp文件中，它通过访问语法树节点生成类似LLVM IR的中间代码。
 ### 入口函数
 在函数visitCompUnit()中，创建全局符号表并遍历所有声明和函数定义，最后检查main函数是否存在。
-```
+```cpp
     currentSymbolTable = new SymbolTable(nullptr);
     isGlobal = true;
     addBuiltinFunc();
@@ -35,7 +35,7 @@ src/
 #### 1.常量声明
 在函数visitConstDef()中，分别针对全局常量和局部常量两种情况做声名处理。
 获取初始值后做类型检查，生成符号后全局常量直接生成IR指令。
-```
+```cpp
         // get the initial value
         auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
         if (initval.type.baseType != currentBType) {
@@ -50,7 +50,8 @@ src/
         llvmmodule.addGlobalVar(globalVar);
 ```
 处理局部常量时需要显示的内存分配，值存储在栈上。
-```     // get the initial value
+``` cpp    
+    // get the initial value
         auto initval = std::any_cast<LLVMValue> (visitConstInitVal(context->constInitVal()));
         if (initval.type.baseType != currentBType) {
             std::cerr << "Error: Type mismatch in constant declaration! Expected " << TypeToLLVM(currentT) << ", got " << TypeToLLVM(initval.type) << std::endl;
@@ -87,13 +88,13 @@ src/
 处理变量的声明在函数visitVarDef()，同样分为全局变量和局部变量两种情况，思想类似于处理常量。
 #### 3.未初始化变量
 对于未初始化的变量，在函数visitConstInitVal()中用zeroinitializer做处理。
-```
+```cpp
 std::vector<int> dimSize = { 0 };
 return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, false /*not function*/, dimSize));
 ```
 ### 函数定义处理
 在函数visitFuncDef()中，访问函数体，先处理参数，再生成函数体IR。
-```
+```cpp
     // visit the function body
     LLVMBasicBlock *block = new LLVMBasicBlock("entry");
     function->addBasicBlock(block);
@@ -133,14 +134,14 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
 控制流语句的处理在函数visitStmt()当中。
 #### 1.条件语句
 处理IF类条件语句时，先创建基本快标签。
-```
+```cpp
         std::string thenLabel = newLabel("then");
         std::string elseifLabel = context->elseIFStmt().empty() ? "" : newLabel("elseif");
         std::string elseLabel = context->elseStmt() ? newLabel("else") : "";
         std::string endLabel = newLabel("ifend");
 ```
 再处理条件跳转，并分别生成then块、elseif then块、else块的代码。
-```
+```cpp
         currentBlock->addInstruction(ss.str());
         // then
         LLVMBasicBlock *thenBlock = new LLVMBasicBlock(thenLabel);
@@ -196,7 +197,7 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
 ```
 #### 2.循环语句
 处理WHLIE类循环语句时，在判断处、循环体处、结尾处各添加标签，再利用这些标签做处理。
-```
+```cpp
         // cond
         LLVMBasicBlock *condBlock = new LLVMBasicBlock(condLabel);
         currentFunction->addBasicBlock(condBlock);
@@ -221,7 +222,7 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
 ```
 ### 表达式处理
 以函数visitAddExp()为例，如果表达式只有一个操作数则直接返回，否则遍历后续操作数，同时做类型检查确保左右操作数类型一致，再根据运算符类型生成IR，最后将当前结果作为下一次操作的左操作数。
-```
+```cpp
     for (int i = 1; i < context->mulExp().size(); i++) {
         std::stringstream ss;
         auto right = std::any_cast<LLVMValue>(visitMulExp(context->mulExp(i)));
@@ -250,7 +251,7 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
 ### 数组访问处理
 先查找标识符，检查常量数组的写操作违规，并检查索引类型。
 再使用getelementptr指令生成数组元素的偏移地址。对于多维数组，按索引逐层计算偏移量。如果数组的第一维是动态大小（dimSizes[0] == -1），需要额外处理基地址。
-```
+```cpp
         std::string ptr = "%" + newSSA("ptr");
         std::stringstream ss;
         if (s->type.dimSizes[0] == -1) {
@@ -271,7 +272,7 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
 ```
 ### 函数调用
 在函数visitUnaryExp()中，根据函数返回类型生成IR。
-```
+```cpp
         if (s->type.baseType == BaseType::VOID) {
             funcret = "";
             ss << "call void @" << ident << "(";
@@ -280,3 +281,53 @@ return LLVMValue("zeroinitializer", VarType(currentBType, false /*is Const*/, fa
             ss << funcret << " = call " << TypeToLLVM(s->type) << " @" << ident << "(";
         }
 ```
+### 符号表
+SymbolTable.h 和 SymbolTable.cpp (符号表)
+
+- 目的：管理程序中的标识符（变量、函数、常量）及其属性（类型、作用域、SSA名称等）。
+- 核心数据结构：
+    - Symbol 结构体：存储单个符号的详细信息。
+        - name (string): 符号名称。
+        - type (VarType): 符号类型（包括基本类型、数组维度、是否常量等）。
+        - ssa (string): 符号的SSA（静态单赋值）形式名称，用于LLVM IR。
+        - constvalue (string): 如果是常量，存储其值。
+        -  params (vector<LLVMValue*>): 如果是函数，存储其参数列表。
+    - SymbolTable 类：实现符号表的查找、定义、作用域管理。
+        - var_table (unordered_map): 存储变量和常量。
+        - func_table (unordered_map): 存储函数。
+        - parent (SymbolTable*): 指向父作用域的指针，用于实现嵌套作用域。
+- 主要功能：
+    - define(const Symbol &symbol): 在当前作用域定义一个新符号。
+    - lookup(const std::string &name, bool isFunction): 查找符号，会沿着作用域链向上查找。
+    - lookupInCurrentScope(const std::string &name, bool isFunction): 仅在当前作用域查找符号。
+    - getParent(): 获取父作用域。
+- 设计特点：
+    - 分层作用域：通过 parent 指针实现嵌套作用域，符合C语言的作用域规则。
+    - SSA支持：ssa 字段直接关联到LLVM IR的变量命名。
+    - 类型系统集成：VarType 紧密集成，用于类型检查和IR生成
+
+### IR生成器
+IRGenerator.h 和 IRGenerator.cpp (LLVM IR 生成器)
+
+- 目的：将在遍历语法分析树时生成的LLVM IR按层次管理, 通过to_string()方法可以生成完整CACT程序的LLVM IR。
+- 核心数据结构：
+    - LLVMValue 结构体 (应在 Types.h 或类似文件中定义)：表示LLVM IR中的一个值（变量、常量、指令结果）。
+        - name (string): 值的名称（如 %1, @gvar）。
+        - type (VarType): 值的类型。
+    - LLVMBasicBlock 类：表示LLVM IR中的一个基本块。
+        - name (string): 基本块的标签名称。
+        - instructions (vector<string>): 基本块内的指令列表。
+    - LLVMFunction 类：表示LLVM IR中的一个函数。
+        - name (string): 函数名。
+        - returnType (string): 返回类型的LLVM表示。
+        - parameters (vector<LLVMValue>): 参数列表。
+        - basicblocks (vector<LLVMBasicBlock*>): 函数内的基本块列表。
+    - LLVMModule 类：表示一个LLVM模块（编译单元）。
+        - functions (vector<LLVMFunction*>): 模块内的函数列表。
+        - globalVars (vector<LLVMGlobalVar>): 全局变量列表。
+- 主要功能：
+    - 基本块管理：创建、添加和组织基本块。
+    - 函数管理：构建函数定义，包括参数、返回类型和基本块。
+    - 模块管理：将函数、全局变量等组合成一个完整的LLVM模块。
+- 设计特点：
+    - 面向对象：将LLVM的各个概念（模块、函数、基本块、值）封装成类，结构清晰。

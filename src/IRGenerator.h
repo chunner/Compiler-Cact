@@ -33,8 +33,6 @@ public:
     LLVMFunction(std::string name, std::string retT, std::vector<LLVMValue> params);
     void addBasicBlock(LLVMBasicBlock *block);
     std::string toString()const;
-    int tmpCounter = 0;
-    std::string newTmp(std::string prefix);
 };
 
 class LLVMGlobalVar {
