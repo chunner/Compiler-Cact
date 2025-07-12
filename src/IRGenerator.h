@@ -78,10 +78,10 @@ public:
 class LLVMGlobalVar {
 public:
     std::string instruction;
-    // std::string name;
-    // std::string type;
-    // std::string initValue;
-    // bool isConstant;
+    std::string name;
+    VarType type;
+    std::string initValue;
+    bool isConstant;
     LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant);
     std::string toString() const;
 };

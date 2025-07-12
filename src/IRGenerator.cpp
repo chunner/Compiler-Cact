@@ -100,7 +100,8 @@ std::string LLVMFunction::toString()const {
 
 
 // =============== Global Variable
-LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant) {
+LLVMGlobalVar::LLVMGlobalVar(std::string name, VarType type, std::string initValue, bool isConstant)
+    :name(std::move(name)), type(std::move(type)), initValue(std::move(initValue)), isConstant(isConstant) {
     std::stringstream ss;
     if (type.isFunction) {
         ss << "declare " << TypeToLLVM(type) << " @" << name << "(";

@@ -8,7 +8,6 @@
 #include "CactVisitor.h"
 #include "CactBaseVisitor.h"
 #include "Analysis.h"
-#include "riscv.h"
 
 using namespace antlr4;
 
