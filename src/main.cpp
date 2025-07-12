@@ -8,6 +8,7 @@
 #include "CactVisitor.h"
 #include "CactBaseVisitor.h"
 #include "Analysis.h"
+#include "riscv.h"
 
 using namespace antlr4;
 
@@ -88,9 +89,25 @@ int main(int argc, const char *argv[]) {
     printParseTreeAdvanced(tree, &parser);
 
     Analysis visitor;
+    // gen IR   
     std::string ir = std::any_cast<std::string>(visitor.visit(tree));
     outstream << ir;
     outstream.close();
+
+    // gen RISC-V assembly
+    // RISCV riscv_visitor;
+    // riscv_visitor.generate_riscv(visitor.llvmmodule);
+
+    // std::ofstream riscvStream;
+    // riscvStream.open(argv[3]);
+    // if (!riscvStream.is_open()) {
+    //     std::cerr << "Error opening RISC-V output file: " << argv[3] << std::endl;
+    //     return 1;
+    // }
+    // for (const auto &line : riscv_visitor.riscv_coides) {
+    //     riscvStream << line << std::endl;
+    // }
+    // riscvStream.close();
     stream.close();
 
     return 0;

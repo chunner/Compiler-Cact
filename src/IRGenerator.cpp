@@ -51,7 +51,6 @@ std::string BTypeToLLVM(const BaseType &type) {
         return "void";
     }
 }
-
 // ================ Basic Block
 void LLVMBasicBlock::addInstruction(const std::string &instruction) {
     instructions.push_back(instruction);
@@ -66,6 +65,9 @@ std::string LLVMBasicBlock::toString() const {
         ss << "  " << instr << "\n";
     }
     return ss.str();
+}
+void LLVMBasicBlock::addLLVMInstruction(const LLVM_INS &ins) {
+    llvm_ins.push_back(ins);
 }
 
 // =============== Function

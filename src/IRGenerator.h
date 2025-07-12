@@ -12,15 +12,55 @@
 std::string TypeToLLVM(const VarType &type);
 std::string BTypeToLLVM(const BaseType &type);
 
+enum class LLVM_INS_T {
+    ALLOCA,
+    BITCAST,
+    MEMCPY,
+    MEMSET,
+    LOAD,
+    STORE,
+    BR,
+    GEP,
+    ZEXT,
+    PHI,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD,
+    AND,
+    OR,
+    NOT,
+    EQ,
+    NEQ,
+    LT,
+    GT,
+    LE,
+    GE,
+    ASSIGN,
+    CALL,
+    RET
+};
+class LLVM_INS {
+public:
+    LLVM_INS_T type;
+    std::string result; // Result variable name
+    std::vector<std::string> operands; // Operands for the instruction
+    LLVM_INS(LLVM_INS_T t, std::string res, std::vector<std::string> ops)
+        : type(t), result(std::move(res)), operands(std::move(ops)) {
+    };
 
+};
 
 class LLVMBasicBlock {
 public:
     std::string label;
     std::vector<std::string> instructions;
+    std::vector<LLVM_INS> llvm_ins;
     LLVMBasicBlock(std::string label) : label(std::move(label)) {
     };
     void addInstruction(const std::string &instruction);
+    void addLLVMInstruction(const LLVM_INS &instruction);
     std::string toString() const;
 };
 
