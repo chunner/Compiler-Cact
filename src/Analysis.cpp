@@ -81,7 +81,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         std::stringstream ss;
         ss << ssa << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(currentT) }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(currentT), std::to_string(currentT.getArraySize()) }));
         ss.str("");
         if (!dimSize.empty()) {
             std::string globalid = "@" + newSSA("const_" + ident);
@@ -198,7 +198,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
         std::stringstream ss;
         ss << ssa << " = alloca " << TypeToLLVM(currentT);
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(currentT) }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(currentT), std::to_string(currentT.getArraySize()) }));
         ss.str("");
         if (context->constInitVal()) {
             auto initval = std::any_cast<LLVMValue>(visitConstInitVal(context->constInitVal()));
@@ -295,7 +295,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
             std::string ssa = "%" + newSSA(parameters[i].name + "_local");
             ss << ssa << " = alloca " << TypeToLLVM(parameters[i].type);
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(parameters[i].type) }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ALLOCA, ssa, { TypeToLLVM(parameters[i].type) , std::to_string(parameters[i].type.getArraySize()) }));
             ss.str("");
             ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* " << ssa;
             currentBlock->addInstruction(ss.str());
@@ -308,7 +308,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
         // if the function does not return, add a return instruction
         if (retBT == BaseType::VOID) {
             currentBlock->addInstruction("ret void");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { "void" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", {}));
         } else {
             currentBlock->addInstruction("ret " + BTypeToLLVM(retBT) + " 0");
             currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { BTypeToLLVM(retBT) + " 0" }));
@@ -523,7 +523,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
                 exit(EXIT_FAILURE);
             }
             currentBlock->addInstruction("ret void");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { "void" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", {}));
         }
     } else { // exp?;
         if (context->exp()) {
