@@ -311,7 +311,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
             currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", {}));
         } else {
             currentBlock->addInstruction("ret " + BTypeToLLVM(retBT) + " 0");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { BTypeToLLVM(retBT) + " 0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { "0" }));
         }
     }
     // visit the body end
@@ -516,7 +516,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
                 exit(EXIT_FAILURE);
             }
             currentBlock->addInstruction("ret " + currentFunction->returnType + " " + ret.name);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { currentFunction->returnType + " " + ret.name }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::RET, "", { ret.name, currentFunction->returnType }));
         } else {
             if (currentFunction->returnType != "void") {
                 std::cerr << "Error: Function " << currentFunction->name << " must return a value!" << std::endl;

@@ -7,18 +7,31 @@
 
 class RiscvFrame {
 public:
-    void addLocal(const std::string& name, int size); // 为局部变量分配空间
-    int getLocalOffset(const std::string& name) const;
-    void addParam(const std::string& name); // 为参数分配空间
-    int getParamOffset(const std::string& name) const;
-    int getFrameSize() const;
-    int getCurrentOffset() const { return _currentOffset; } // 获取当前偏移量
-    void calculateFrameSize(); // 在所有变量添加后计算总大小
+    // 在分析阶段调用：为 alloca 指令分配栈空间
+    void addLocal(const std::string& name, int size);
+
+    // 在分析阶段调用：为 LLVM 虚拟寄存器 (%0, %1...) 分配栈空间
+    // 这是我们简化寄存器分配的关键：所有中间值都存到栈上
+    void addVirtualRegister(const std::string& name, int size = 4);
+
+    // 获取变量/寄存器的偏移量
+    int getOffset(const std::string& name) const;
+
+    // 在分析阶段结束后调用：计算总栈帧大小，考虑对齐
+    void calculateFrameSize();
+
+    // 获取总大小，用于生成函数序言
+    int getTotalFrameSize() const { return _totalSize; }
+
+    // 保存 ra 和 fp 的固定偏移量
+    static constexpr int RA_OFFSET = 0;
+    static constexpr int FP_OFFSET = -8;
 
 private:
-    int _currentOffset = 0; // 从fp开始的负向偏移
-    std::unordered_map<std::string, int> _locals;
-    std::unordered_map<std::string, int> _params;
+    int _currentOffset = -16; // 初始偏移量，留出空间给 ra 和 fp
+    int _totalSize = 0;
+    // 一个 map 统一存储所有东西（局部变量、虚拟寄存器）的偏移量
+    std::unordered_map<std::string, int> _locationMap;
 };
 
 

@@ -135,8 +135,8 @@ void RiscvGenerator::generateGlobalVar(const LLVMGlobalVar &var) {
     }
     _dataSection << "\n"; // 在每个全局变量定义后加一个空行，更美观
 
-    // 注册到变量-位置映射中
-    _locationMap[var.name] = VariableLocation::asGlobal(var.name);
+    // 注册全局变量
+    _global_var.push_back(GlobalVar(var.name));
 }
 
 void RiscvGenerator::generateFunction(const LLVMFunction &func) {
@@ -146,9 +146,10 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
     _currentFrame = RiscvFrame(); // 新建栈帧
     _regMap.clear();             // 清空寄存器映射
     _tempRegCounter = 0;         // 重置临时寄存器计数器
+    _currentFunction = func;
 
     // 遍历所有指令，计算栈帧大小
-    int frameSize;
+    int frameSize = 0;
     for (const auto &block : func.basicblocks) {
         for (const auto &inst : block->llvm_ins) {
             if (inst.type == LLVM_INS_T::ALLOCA) {
@@ -156,6 +157,7 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
             }
         }
     }
+
 
     // --- 函数序言 (Prologue) ---
     _textSection << "  # Function Prologue\n";
@@ -177,7 +179,7 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
     _textSection << "  ld ra, " << frameSize - 8 << "(sp)\n";
     _textSection << "  ld s0, " << frameSize - 16 << "(sp)\n";
     _textSection << "  addi sp, sp, " << frameSize << "\n";
-    _textSection << "  jr ra\n\n";
+    _textSection << "  ret\n"; // 返回指令
 }
 
 
@@ -222,14 +224,8 @@ void RiscvGenerator::generateAlloca(const LLVM_INS &inst) {
     std::string varName = inst.result;
     int size = std::stoi(inst.operands[1]); // 第二个操作数是分配的字节数
 
-    _textSection << "  # Alloca " << varName << "\n";
-    _textSection << "  addi sp, sp, -" << size << "\n";
-    _textSection << "  sw zero, 0(sp)\n"; // 初始化为0
-
-    // 更新内存映射
     _currentFrame.addLocal(varName, size);
-    _locationMap[varName] = VariableLocation::onStack(_currentFrame.getCurrentOffset());
-
+    int offset = _currentFrame.getOffset(varName);
 }
 
 void RiscvGenerator::generateLoad(const LLVM_INS &inst) {
@@ -370,16 +366,19 @@ void RiscvGenerator::generateRet(const LLVM_INS &inst) {
     // 示例: ret i32 %a
     // 转换:
     //   lw a0, a
-    //   ret
+    //   j .Lexit
     if (inst.operands.empty()) {
         // 无返回值的函数
         _textSection << "  # Return from function\n";
-        _textSection << "   ret\n";
+        _textSection << "  j .L" << _currentFunction.name << "_exit\n";
     } else {
         // 有返回值的函数
         std::string retVal = inst.operands[0]; // 返回值
-
-        if (_regMap.find(retVal) != _regMap.end()) {
+        if (std::regex_match(retVal, std::regex(R"(\d+)"))) {
+            // 如果是立即数，直接将其加载到 a0 寄存器
+            _textSection << "  # Return immediate value " << retVal << " from function\n";
+            _textSection << "  li a0, " << retVal << "\n"; // 将立即数加载到 a0 寄存器
+        } else if (_regMap.find(retVal) != _regMap.end()) {
             // 如果返回值在寄存器中
             _textSection << "  # Return " << retVal << " from function\n";
             _textSection << "  mv a0, " << _regMap[retVal] << "\n"; // 将返回值移动到 a0 寄存器
@@ -388,6 +387,11 @@ void RiscvGenerator::generateRet(const LLVM_INS &inst) {
             _textSection << "  # Load return value " << retVal << " from stack\n";
             _textSection << "  lw a0, " << retVal << "\n"; // 从栈加载返回值
         }
-        _textSection << "  ret\n";
+        _textSection << "  j .L" << _currentFunction.name << "_exit\n"; // 跳转到统一的退出点
     }
+}
+
+std::string RiscvGenerator::getTempReg() {
+    static int tempRegCounter = 0;
+    return "t" + std::to_string(tempRegCounter++); // 返回 t0, t1, t2, ...
 }

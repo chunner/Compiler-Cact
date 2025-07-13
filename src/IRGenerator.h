@@ -73,6 +73,7 @@ public:
     LLVMFunction(std::string name, std::string retT, std::vector<LLVMValue> params);
     void addBasicBlock(LLVMBasicBlock *block);
     std::string toString()const;
+    LLVMFunction() = default;
 };
 
 class LLVMGlobalVar {
