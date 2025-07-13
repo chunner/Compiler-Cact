@@ -103,7 +103,7 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
         } else {
             ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* " << ssa;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { initval.name, TypeToLLVM(currentBType) + "* " + ssa }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { initval.name, ssa,TypeToLLVM(currentBType) }));
         }
     }
     return 0;;
@@ -226,7 +226,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
             } else {
                 ss << "store " << TypeToLLVM(initval.type) << " " << initval.name << ", " << TypeToLLVM(currentBType) << "* " << ssa;
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { initval.name, TypeToLLVM(currentBType) + "* " + ssa }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { initval.name,ssa,  TypeToLLVM(currentBType) }));
             }
         } else {
             if (dimSize.empty()) {
@@ -234,7 +234,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 std::stringstream ss;
                 ss << "store " << TypeToLLVM(currentBType) << " 0, " << TypeToLLVM(currentBType) << "* " << ssa;
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { "0", TypeToLLVM(currentBType) + "* " + ssa }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { "0",ssa, TypeToLLVM(currentBType) }));
             } else {
                 // if the variable is an array, we can just leave it as uninitialized
                 std::stringstream ss;
@@ -299,7 +299,7 @@ std::any Analysis::visitFuncDef(CactParser::FuncDefContext *context) {
             ss.str("");
             ss << "store " << TypeToLLVM(parameters[i].type) << " %" << parameters[i].name << ", " << TypeToLLVM(parameters[i].type) << "* " << ssa;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { "%" + parameters[i].name, TypeToLLVM(parameters[i].type) + "* " + ssa }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { "%" + parameters[i].name,ssa, TypeToLLVM(parameters[i].type) }));
             currentSymbolTable->define(Symbol(parameters[i].name, parameters[i].type, ssa));
         }
     }
@@ -380,7 +380,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         std::stringstream ss;
         ss << "store " << TypeToLLVM(left_ptr.type) << " " << right.name << ", " << TypeToLLVM(left_ptr.type) << "* " << left_ptr.name;
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { right.name, TypeToLLVM(left_ptr.type) + "* " + left_ptr.name }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { right.name,left_ptr.name, TypeToLLVM(left_ptr.type) }));
     } else if (context->block()) { // block
         currentSymbolTable = new SymbolTable(currentSymbolTable);
         visitBlock(context->block());
@@ -765,19 +765,19 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
                 }
             }
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, { TypeToLLVM(s->type) + "* " + identssa, "i32 0" })); // GEP instruction
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, { identssa, "i32 0" , TypeToLLVM(s->type) })); // GEP instruction
             std::string load = "%" + newSSA("load");
             ss.str("");
             ss << load << " = load " << BTypeToLLVM(s->type.baseType) << ", " << BTypeToLLVM(s->type.baseType) << "* " << ptr;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { BTypeToLLVM(s->type.baseType) + "* " + ptr }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { BTypeToLLVM(s->type.baseType) , ptr }));
             return LLVMValue(load, VarType(s->type.baseType));
         } else {
             std::string load = "%" + newSSA("load");
             std::stringstream ss;
             ss << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { TypeToLLVM(s->type) + "* " + identssa }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { TypeToLLVM(s->type), identssa }));
             return LLVMValue(load, VarType(s->type.baseType));
         }
     } else if (context->number()) {
@@ -800,7 +800,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
                 std::string newright = "%" + newSSA("cast");
                 ss << newright << " = zext " << TypeToLLVM(right.type) << " " << right.name << " to i32";
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ZEXT, newright, { TypeToLLVM(right.type) + " " + right.name, "to i32" }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ZEXT, newright, { right.name,TypeToLLVM(right.type) ,"i32" }));
                 ss.str("");
                 right.name = newright;
                 right.type.baseType = BaseType::I32; // cast to i32 for negation
@@ -822,7 +822,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
             std::stringstream ss;
             ss << notssa << " = icmp eq " << TypeToLLVM(right.type) << " " << right.name << ", 0";
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::EQ, notssa, { TypeToLLVM(right.type) + " " + right.name, "0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::EQ, notssa, { right.name, "0" , TypeToLLVM(right.type) }));
             return LLVMValue(notssa, VarType(BaseType::I1));
         } else {
             std::cerr << "Error: Unknown unary operator!" << std::endl;
@@ -854,7 +854,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
                 exit(EXIT_FAILURE);
             }
             ss << params.first;
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::CALL, funcret, { TypeToLLVM(s->type) + " @" + ident + "(" + params.first + ")" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::CALL, funcret, { ident, params.first, TypeToLLVM(s->type) }));
         } else {
             if (!s->params.empty()) {
                 std::cerr << "Error: Function " << ident << " expects parameters, but none were provided!" << std::endl;
@@ -889,21 +889,21 @@ std::any Analysis::visitMulExp(CactParser::MulExpContext *context) {
         if (right.type.baseType == BaseType::I32) {
             if (context->mulOp(i - 1)->MUL()) {
                 ss << mul.name << " = mul " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MUL, mul.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MUL, mul.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->mulOp(i - 1)->DIV()) {
                 ss << mul.name << " = sdiv " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::DIV, mul.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::DIV, mul.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->mulOp(i - 1)->MOD()) {
                 ss << mul.name << " = srem " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MOD, mul.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MOD, mul.name, { left.name, right.name, TypeToLLVM(left.type) }));
             }
         } else if (right.type.baseType == BaseType::FLOAT || right.type.baseType == BaseType::DOUBLE) {
             if (context->mulOp(i - 1)->MUL()) {
                 ss << mul.name << " = fmul " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MUL, mul.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::MUL, mul.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->mulOp(i - 1)->DIV()) {
                 ss << mul.name << " = fdiv " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::DIV, mul.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::DIV, mul.name, { left.name, right.name , TypeToLLVM(left.type) }));
             }
         } else {
             std::cerr << "Error: Unknown type in multiplication!" << std::endl;
@@ -933,14 +933,14 @@ std::any Analysis::visitAddExp(CactParser::AddExpContext *context) {
             } else {
                 ss << sum.name << " = add " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
             }
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ADD, sum.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::ADD, sum.name, { left.name, right.name , TypeToLLVM(left.type) }));
         } else if (context->addOp(i - 1)->MINUS()) {
             if (left.type.baseType == BaseType::FLOAT || left.type.baseType == BaseType::DOUBLE) {
                 ss << sum.name << " = fsub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
             } else {
                 ss << sum.name << " = sub " << TypeToLLVM(left.type) << " " << left.name << ", " << right.name;
             }
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::SUB, sum.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::SUB, sum.name, { left.name, right.name , TypeToLLVM(left.type) }));
         }
         currentBlock->addInstruction(ss.str());
         left = sum;
@@ -964,16 +964,16 @@ std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
             rel.name = "%" + newSSA("rel");
             if (context->relOp()->LT()) {
                 currentBlock->addInstruction(rel.name + " = icmp slt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LT, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LT, rel.name, { left.name, right.name , TypeToLLVM(left.type) }));
             } else if (context->relOp()->GT()) {
                 currentBlock->addInstruction(rel.name + " = icmp sgt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GT, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GT, rel.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->relOp()->GE()) {
                 currentBlock->addInstruction(rel.name + " = icmp sge " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GE, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GE, rel.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->relOp()->LE()) {
                 currentBlock->addInstruction(rel.name + " = icmp sle " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LE, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LE, rel.name, { left.name, right.name, TypeToLLVM(left.type) }));
             }
             rel.type = VarType(BaseType::I1);
             return rel;
@@ -981,16 +981,16 @@ std::any Analysis::visitRelExp(CactParser::RelExpContext *context) {
             rel.name = "%" + newSSA("rel");
             if (context->relOp()->LT()) {
                 currentBlock->addInstruction(rel.name + " = fcmp olt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LT, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LT, rel.name, {left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->relOp()->GT()) {
                 currentBlock->addInstruction(rel.name + " = fcmp ogt " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GT, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GT, rel.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->relOp()->GE()) {
                 currentBlock->addInstruction(rel.name + " = fcmp oge " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GE, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GE, rel.name, { left.name, right.name, TypeToLLVM(left.type) }));
             } else if (context->relOp()->LE()) {
                 currentBlock->addInstruction(rel.name + " = fcmp ole " + TypeToLLVM(left.type) + " " + left.name + ", " + right.name);
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LE, rel.name, { TypeToLLVM(left.type) + " " + left.name, right.name }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LE, rel.name, { left.name, right.name , TypeToLLVM(left.type) }));
             }
             rel.type = VarType(BaseType::I1);
             return rel;
@@ -1013,14 +1013,14 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
         if (left.type.baseType == BaseType::I32 && right.type.baseType == BaseType::I1) {
             std::string newleft = "%" + newSSA("eq");
             currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, { TypeToLLVM(left.type) + " " + left.name, "0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, {left.name, "0" , TypeToLLVM(left.type) }));
             left.name = newleft;
             left.type = VarType(BaseType::I1); // convert to boolean type
             eq = left;
         } else if (left.type.baseType == BaseType::I1 && right.type.baseType == BaseType::I32) {
             std::string newright = "%" + newSSA("eq");
             currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, { TypeToLLVM(right.type) + " " + right.name, "0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, {right.name, "0", TypeToLLVM(right.type) }));
             right.name = newright;
             right.type = VarType(BaseType::I1); // convert to boolean type
         }
@@ -1032,10 +1032,10 @@ std::any Analysis::visitEqExp(CactParser::EqExpContext *context) {
         eq.name = "%" + newSSA("eq");
         if (context->eqOp()->EQ()) {
             currentBlock->addInstruction(eq.name + " = icmp eq " + TypeToLLVM(eq.type) + " " + left.name + ", " + right.name);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::EQ, eq.name, { TypeToLLVM(eq.type) + " " + left.name, right.name }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::EQ, eq.name, {left.name, right.name , TypeToLLVM(eq.type) }));
         } else if (context->eqOp()->NEQ()) {
             currentBlock->addInstruction(eq.name + " = icmp ne " + TypeToLLVM(eq.type) + " " + left.name + ", " + right.name);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, eq.name, { TypeToLLVM(eq.type) + " " + left.name, right.name }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, eq.name, {left.name, right.name , TypeToLLVM(eq.type) }));
         }
         eq.type = VarType(BaseType::I1);
         return eq;
@@ -1056,7 +1056,7 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     if (left.type.baseType != BaseType::I1) {
         std::string newleft = "%" + newSSA("land");
         currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, { TypeToLLVM(left.type) + " " + left.name, "0" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, { left.name, "0", TypeToLLVM(left.type) }));
         left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
     }
@@ -1069,7 +1069,7 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     for (int i = 1; i < context->eqExp().size(); i++) {
         std::string nextLabel = newLabel("land_next");
         currentBlock->addInstruction("br i1 " + left.name + ", label %" + nextLabel + ", label %" + finalLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + left.name, "label %" + nextLabel, "label %" + finalLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name, "label %" + nextLabel, "label %" + finalLabel }));
         phiSources.emplace_back("false", currentBlock->label);
         currentBlock = new LLVMBasicBlock(nextLabel);
         currentFunction->addBasicBlock(currentBlock);
@@ -1078,13 +1078,13 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         if (right.type.baseType != BaseType::I1) {
             std::string newright = "%" + newSSA("land");
             currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, { TypeToLLVM(right.type) + " " + right.name, "0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, {  right.name, "0", TypeToLLVM(right.type) }));
             right.name = newright;
             right.type = VarType(BaseType::I1); // convert to boolean type
         }
         land.name = "%" + newSSA("land");
         currentBlock->addInstruction(land.name + " = and i1 " + left.name + ", " + right.name);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::AND, land.name, { "i1 " + left.name, right.name }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::AND, land.name, { left.name, right.name , "i1" }));
         left = land;
     }
     currentBlock->addInstruction("br label %" + finalLabel);
@@ -1114,7 +1114,7 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     if (left.type.baseType != BaseType::I1) {
         std::string newleft = "%" + newSSA("lor");
         currentBlock->addInstruction(newleft + " = icmp ne " + TypeToLLVM(left.type) + " " + left.name + ", 0");
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, { TypeToLLVM(left.type) + " " + left.name, "0" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newleft, { left.name, "0" , TypeToLLVM(left.type) }));
         left.name = newleft;
         left.type = VarType(BaseType::I1); // convert to boolean type
     }
@@ -1136,13 +1136,13 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         if (right.type.baseType != BaseType::I1) {
             std::string newright = "%" + newSSA("lor");
             currentBlock->addInstruction(newright + " = icmp ne " + TypeToLLVM(right.type) + " " + right.name + ", 0");
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, { TypeToLLVM(right.type) + " " + right.name, "0" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newright, { right.name, "0" , TypeToLLVM(right.type) }));
             right.name = newright;
             right.type = VarType(BaseType::I1); // convert to boolean type
         }
         lor.name = "%" + newSSA("lor");
         currentBlock->addInstruction(lor.name + " = or i1 " + left.name + ", " + right.name);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::OR, lor.name, { "i1 " + left.name, right.name }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::OR, lor.name, { left.name, right.name , "i1"}));
         left = lor;
     }
     currentBlock->addInstruction("br label %" + finalLabel);
