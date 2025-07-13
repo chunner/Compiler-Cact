@@ -30,3 +30,10 @@ void RiscvFrame::calculateFrameSize() {
     // 栈帧大小必须是 16 字节对齐
     _totalSize = (size + 15) / 16 * 16;
 }
+
+void RiscvFrame::analyzeFunction(const LLVMFunction &func) {
+    _totalSize = 400; // 硬编码一个默认大小
+    RA_OFFSET = _totalSize - 8;
+    FP_OFFSET = _totalSize - 16;
+    _currentOffset = FP_OFFSET;
+}

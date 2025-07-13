@@ -592,7 +592,7 @@ std::any Analysis::visitLVal(CactParser::LValContext *context) {
             }
         }
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, { TypeToLLVM(s->type) + "* " + identssa, "i32 0" })); // GEP instruction
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, {ss.str()})); // GEP instruction
         return LLVMValue(ptr, VarType(s->type.baseType));
     } else {
         return LLVMValue(identssa, VarType(s->type.baseType));
@@ -765,7 +765,7 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
                 }
             }
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, { identssa, "i32 0" , TypeToLLVM(s->type) })); // GEP instruction
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::GEP, ptr, { ss.str()})); // GEP instruction
             std::string load = "%" + newSSA("load");
             ss.str("");
             ss << load << " = load " << BTypeToLLVM(s->type.baseType) << ", " << BTypeToLLVM(s->type.baseType) << "* " << ptr;

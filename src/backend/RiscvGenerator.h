@@ -47,19 +47,9 @@ public:
 
 private:
     std::vector<GlobalVar> _global_var;
-
-
-    void generateFunction(const LLVMFunction &func);
-    void generateGlobalVar(const LLVMGlobalVar &var);
-    void generateBasicBlock(const LLVMBasicBlock &block);
-    void generateInstruction(const std::string &instr);
-
     const LLVMModule &_module;
+
     RiscvFrame _currentFrame;
-
-    // 用于虚拟寄存器到物理寄存器/栈位置的映射
-    int _stackOffset; // 当前函数栈的偏移
-
     LLVMFunction _currentFunction; // 当前正在处理的函数
 
     std::stringstream _textSection;
@@ -68,7 +58,8 @@ private:
     // 用于寄存器分配的映射表
    // key: LLVM虚拟寄存器名 (如 %1), value: RISC-V物理寄存器名 (如 t0) 或栈偏移
     std::unordered_map<std::string, std::string> _regMap;
-    int _tempRegCounter; // 用于分配临时寄存器 t0, t1, ...
+    std::vector<bool> _usedRegs;
+    int tempRegIndex;
 
     // === 辅助函数 ===
     std::string getTempReg(); // 获取一个临时寄存器
@@ -76,9 +67,11 @@ private:
     std::string loadToReg(const std::string &llvmVar); // 将变量从栈加载到寄存器
     void storeFromReg(const std::string &llvmVar, const std::string &reg); // 将寄存器值存回栈
 
-
-
-    // 不同的指令生成函数
+    // 指令生成函数
+    void generateFunction(const LLVMFunction &func);
+    void generateGlobalVar(const LLVMGlobalVar &var);
+    void generateBasicBlock(const LLVMBasicBlock &block);
+    void generateInstruction(const std::string &instr);
     void generateAlloca(const LLVM_INS &instr);
     void generateBitCast(const LLVM_INS &instr);
     void generateMemcpy(const LLVM_INS &instr);
@@ -93,6 +86,7 @@ private:
     void generateAssign(const LLVM_INS &instr);
     void generateCall(const LLVM_INS &instr);
     void generateRet(const LLVM_INS &instr);
+    void generateGEP(const LLVM_INS &instr);
 
     // 关键！从LLVM变量名 (e.g., "%1") 到其存储位置的映射
     // std::unordered_map<std::string, VariableLocation> _locationMap;

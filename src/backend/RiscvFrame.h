@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "IRGenerator.h"
 
 class RiscvFrame {
 public:
@@ -24,11 +25,14 @@ public:
     int getTotalFrameSize() const { return _totalSize; }
 
     // 保存 ra 和 fp 的固定偏移量
-    static constexpr int RA_OFFSET = 0;
-    static constexpr int FP_OFFSET = -8;
+    int RA_OFFSET;
+    int FP_OFFSET;
+
+    // 分析函数
+    void analyzeFunction(const LLVMFunction &func);
 
 private:
-    int _currentOffset = -16; // 初始偏移量，留出空间给 ra 和 fp
+    int _currentOffset; // 初始偏移量，留出空间给 ra 和 fp
     int _totalSize = 0;
     // 一个 map 统一存储所有东西（局部变量、虚拟寄存器）的偏移量
     std::unordered_map<std::string, int> _locationMap;
