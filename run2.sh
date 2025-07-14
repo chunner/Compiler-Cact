@@ -78,10 +78,10 @@ for input_file in "${cact_files[@]}"; do
             
             # 构建链接命令
             if [ -n "$RUNTIME_LIB" ] && [ -f "$RUNTIME_LIB" ]; then
-                link_cmd="riscv64-linux-gnu-gcc -static $output_s $RUNTIME_LIB -o $output_exe"
+                link_cmd="riscv64-linux-gnu-gcc -static $output_s $RUNTIME_LIB -g -o $output_exe"
                 echo "    Using runtime library: $RUNTIME_LIB" | tee -a "$LOG_FILE"
             else
-                link_cmd="riscv64-linux-gnu-gcc -static $output_s -o $output_exe"
+                link_cmd="riscv64-linux-gnu-gcc -static $output_s -g -o $output_exe"
                 echo "    No runtime library found" | tee -a "$LOG_FILE"
             fi
             

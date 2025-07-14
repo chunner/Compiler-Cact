@@ -37,3 +37,7 @@ void RiscvFrame::analyzeFunction(const LLVMFunction &func) {
     FP_OFFSET = _totalSize - 16;
     _currentOffset = FP_OFFSET;
 }
+
+void RiscvFrame::bitCast(const std::string& src, const std::string& dst) {
+    _locationMap[dst] = _locationMap[src];
+}

@@ -90,12 +90,12 @@ std::any Analysis::visitConstDef(CactParser::ConstDefContext *context) {
             std::string identcast = "%" + newSSA("cast_i8_" + ident);
             ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, { TypeToLLVM(currentT) + "* " + ssa, "i8*" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, {ssa, "i8*" }));
             ss << "";
             std::string globalcast = "%" + newSSA("cast_i8_global");
             ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, globalcast, { TypeToLLVM(currentT) + "* " + globalid, "i8*" }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, globalcast, {globalid, "i8*" }));
             ss << "";
             ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << identcast << ", i8* " << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
             currentBlock->addInstruction(ss.str());
@@ -207,18 +207,18 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 exit(EXIT_FAILURE);
             }
             if (!dimSize.empty()) {
-                std::string globalid = "@" + newSSA("__const." + ident);
+                std::string globalid = "@" + newSSA("__const_" + ident);
                 LLVMGlobalVar globalVar(globalid, currentT, initval.name, true/* not Const*/);
                 llvmmodule.addGlobalVar(globalVar);
                 std::string identcast = "%" + newSSA("cast_i8_" + ident);
                 ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, { TypeToLLVM(currentT) + "* " + ssa, "i8*" }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, { ssa, "i8*" }));
                 ss.str("");
                 std::string globalcast = "%" + newSSA("cast_i8_global");
                 ss << globalcast << " = bitcast " << TypeToLLVM(currentT) << "* " << globalid << " to i8*";
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, globalcast, { TypeToLLVM(currentT) + "* " + globalid, "i8*" }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, globalcast, { globalid, "i8*" }));
                 ss.str("");
                 ss << "call void @llvm.memcpy.p0i8.p0i8.i32(i8* " << identcast << ", i8* " << globalcast << ", i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());
@@ -241,7 +241,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 std::string identcast = "%" + newSSA("cast_" + ident);
                 ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
                 currentBlock->addInstruction(ss.str());
-                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, { TypeToLLVM(currentT) + "* " + ssa, "i8*" }));
+                currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BITCAST, identcast, { ssa, "i8*" }));
                 ss.str("");
                 ss << "call void @llvm.memset.p0i8.i32(i8* " << identcast << ", i8 0, i32 " << currentT.getArraySize() << ", i1 false)";
                 currentBlock->addInstruction(ss.str());

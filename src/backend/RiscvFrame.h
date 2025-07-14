@@ -31,6 +31,8 @@ public:
     // 分析函数
     void analyzeFunction(const LLVMFunction &func);
 
+    void bitCast(const std::string &src, const std::string &dst);
+
 private:
     int _currentOffset; // 初始偏移量，留出空间给 ra 和 fp
     int _totalSize = 0;
