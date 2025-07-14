@@ -860,6 +860,7 @@ std::any Analysis::visitUnaryExp(CactParser::UnaryExpContext *context) {
                 std::cerr << "Error: Function " << ident << " expects parameters, but none were provided!" << std::endl;
                 exit(EXIT_FAILURE);
             }
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::CALL, funcret, { ident, "", TypeToLLVM(s->type) }));
         }
         ss << ")";
         currentBlock->addInstruction(ss.str());
