@@ -24,6 +24,10 @@ public:
     // 获取总大小，用于生成函数序言
     int getTotalFrameSize() const { return _totalSize; }
 
+    bool hasLocal(const std::string& name) const {
+        return _locationMap.find(name) != _locationMap.end();
+    }
+
     // 保存 ra 和 fp 的固定偏移量
     int RA_OFFSET;
     int FP_OFFSET;

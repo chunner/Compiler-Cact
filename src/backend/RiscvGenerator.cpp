@@ -168,6 +168,14 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
     _textSection << "  sd s0, " << _currentFrame.FP_OFFSET << "(sp)\n";
     _textSection << "  addi s0, sp, " << frameSize << "\n";
 
+    // 处理函数参数
+    for (size_t i = 0; i < func.parameters.size(); ++i) {
+        const auto &param = func.parameters[i];
+        std::string paramName = param.name;
+        // 更新寄存器映射
+        _regMap[paramName] = "a" + std::to_string(i); // 假设参数寄存器从 a0 开始
+    }
+
     // --- 函数体 ---
     for (const auto &block : func.basicblocks) {
         generateBasicBlock(*block);
@@ -183,7 +191,7 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
 }
 
 void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
-    _textSection<< _currentFunction.name << "_" << block.label << ":\n";
+    _textSection << _currentFunction.name << "_" << block.label << ":\n";
     for (const auto &inst : block.llvm_ins) {
         switch (inst.type) {
         case LLVM_INS_T::ALLOCA:
@@ -215,6 +223,9 @@ void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
             break;
         case LLVM_INS_T::BITCAST:
             generateBitCast(inst);
+            break;
+        case LLVM_INS_T::CALL:
+            generateCall(inst);
             break;
         default:
             // 其他指令类型暂不处理
@@ -649,6 +660,55 @@ void RiscvGenerator::generateBitCast(const LLVM_INS &intr) {
 
 }
 
+void RiscvGenerator::generateCall(const LLVM_INS &intr) {
+    // 示例: call void @foo(i32 %a, i32 %b)
+    // 转换:
+    //   mv a0, a
+    //   mv a1, b
+    //   jal foo
+
+    std::string funcName = intr.operands[0]; // 函数名
+    if (funcName[0] == '@') {
+        funcName = funcName.substr(1); // 去掉前缀 '@'
+    }
+
+    _textSection << "  # Call function " << funcName << "\n";
+
+    // 准备参数寄存器
+    std::regex re(R"((%|@)(\w+))");
+    std::string params = intr.operands[1];
+    std::smatch match;
+    while (std::regex_search(params, match, re)) {
+        std::string arg = match[0].str(); // 提取参数名
+        params = match.suffix().str(); // 更新参数字符串
+        bool global_arg = arg[0] == '@'; // 检查是否是全局变量
+        if (arg[0] == '%' || arg[0] == '@') {
+            arg = arg.substr(1); // 去掉前缀 '%'
+        }
+        if (global_arg) {
+            // 如果是全局变量，直接加载到寄存器
+            _textSection << "   lw a" << _currentFunction.parameters.size() << ", " << arg << "\n"; // 从全局变量加载值
+        } else if (_regMap.find(arg) != _regMap.end()) {
+            // 如果在寄存器中
+            _textSection << "  mv a" << _currentFunction.parameters.size() << ", " << _regMap[arg] << "\n"; // 将寄存器值传递给参数寄存器
+        } else {
+            // 否则从栈加载值
+            int offset = _currentFrame.getOffset(arg);
+            _textSection << "   lw a" << _currentFunction.parameters.size() << ", " << offset << "(sp)\n"; // 从栈加载值
+        }
+
+    }
+    _textSection << "  jal " << funcName << "\n"; // 调用函数
+
+    // 如果函数有返回值，假设返回值在 a0 寄存器中
+    if (!intr.result.empty()) {
+        std::string retVar = intr.result.substr(1); // 去掉前缀 '%'
+        _regMap[retVar] = "a0"; // 更新寄存器映射
+        _currentFrame.addLocal(retVar, 4); // 假设返回值是 i32，分配 4 字节
+        int offset = _currentFrame.getOffset(retVar);
+        _textSection << "  sw a0, " << offset << "(sp)\n"; // 将返回值存储到栈上
+    }
+}
 
 
 std::string RiscvGenerator::getTempReg() {
@@ -662,7 +722,7 @@ std::string RiscvGenerator::getTempReg() {
                 break;
             }
         }
-        if (!VarName.empty()) {
+        if (!VarName.empty() && _currentFrame.hasLocal(VarName)) {
             int offset = _currentFrame.getOffset(VarName);
             _textSection << "  # Storing t" << tempRegIndex << " to stack for variable " << VarName << "\n";
             _textSection << "  sw t" << tempRegIndex << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
