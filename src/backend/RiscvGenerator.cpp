@@ -183,7 +183,7 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
 }
 
 void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
-    _textSection << block.label << ":\n";
+    _textSection<< _currentFunction.name << "_" << block.label << ":\n";
     for (const auto &inst : block.llvm_ins) {
         switch (inst.type) {
         case LLVM_INS_T::ALLOCA:
@@ -294,6 +294,7 @@ void RiscvGenerator::generateStore(const LLVM_INS &inst) {
     if (src[0] == '%' || src[0] == '@') {
         src = src.substr(1); // 去掉前缀 '%'
     }
+    bool global_dest = destPtr[0] == '@'; // 检查是否是全局变量
     if (destPtr[0] == '%' || destPtr[0] == '@') {
         destPtr = destPtr.substr(1); // 去掉前缀 '%'
     }
@@ -314,7 +315,10 @@ void RiscvGenerator::generateStore(const LLVM_INS &inst) {
 
     // 存储到目标指针
     std::string destReg;
-    if (_regMap.find(destPtr) != _regMap.end()) {
+    if (global_dest) {
+        destReg = getTempReg();
+        _textSection << "  la " << destReg << ", " << destPtr << "\n"; // 从全局变量加载地址
+    } else if (_regMap.find(destPtr) != _regMap.end()) {
         destReg = _regMap[destPtr]; // 如果在寄存器中
     } else {
         destReg = getTempReg(); // 否则分配一个临时寄存器
@@ -508,12 +512,16 @@ void RiscvGenerator::generateGEP(const LLVM_INS &instr) {
     std::smatch match;
     std::regex_search(instr.operands[0], match, re);
     std::string srcPtr = match[1]; // 提取源指针
+    bool global_src = srcPtr[0] == '@'; // 检查是否是全局变量
     if (srcPtr[0] == '%' || srcPtr[0] == '@') {
         srcPtr = srcPtr.substr(1); // 去掉前缀 '%'
     }
     _textSection << "  # GEP " << dest << " from " << srcPtr << "\n";
     std::string srcReg;
-    if (_regMap.find(srcPtr) != _regMap.end()) {
+    if (global_src) {
+        srcReg = getTempReg(); // 如果是全局变量，直接加载到临时寄存器
+        _textSection << " la " << srcReg << ", " << srcPtr << "\n"; // 从全局变量加载地址
+    } else if (_regMap.find(srcPtr) != _regMap.end()) {
         srcReg = _regMap[srcPtr]; // 如果在寄存器中
     } else {
         srcReg = getTempReg(); // 否则分配一个临时寄存器
