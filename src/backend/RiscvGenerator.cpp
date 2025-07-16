@@ -207,6 +207,7 @@ void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
         case LLVM_INS_T::SUB:
         case LLVM_INS_T::MUL:
         case LLVM_INS_T::DIV:
+        case LLVM_INS_T::MOD:
             generateArithmetic(inst);
             break;
         case LLVM_INS_T::BR:
@@ -226,6 +227,13 @@ void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
             break;
         case LLVM_INS_T::CALL:
             generateCall(inst);
+            break;
+        case LLVM_INS_T::NEQ:
+        case LLVM_INS_T::EQ:
+            generateIcmp(inst);
+            break;
+        case LLVM_INS_T::PHI:
+            generatePhi(inst);
             break;
         default:
             // 其他指令类型暂不处理
@@ -422,6 +430,9 @@ void RiscvGenerator::generateArithmetic(const LLVM_INS &inst) {
     case LLVM_INS_T::DIV:
         _textSection << "  div " << resultReg << ", " << tempReg1 << ", " << tempReg2 << "\n";
         break;
+    case LLVM_INS_T::MOD:
+        _textSection << "  rem " << resultReg << ", " << tempReg1 << ", " << tempReg2 << "\n";
+        break;
     default:
         throw std::runtime_error("Unsupported arithmetic operation: " + std::to_string(static_cast<int>(inst.type)));
     }
@@ -448,21 +459,43 @@ void RiscvGenerator::generateBranch(const LLVM_INS &inst) {
     if (inst.operands.size() == 1) {
         // 无条件跳转
         std::string targetLabel = inst.operands[0];
+        if (targetLabel[0] == '%') {
+            targetLabel = targetLabel.substr(1); // 去掉前缀 '%'
+        }
         _textSection << "  # Unconditional branch to " << targetLabel << "\n";
         _textSection << "  j " << targetLabel << "\n";
     } else if (inst.operands.size() == 3) {
         // 有条件跳转
         std::string cond = inst.operands[0]; // 条件
+        bool global_cond = cond[0] == '@'; // 检查是否是全局变量
+        if (cond[0] == '%' || cond[0] == '@') {
+            cond = cond.substr(1); // 去掉前缀 '%'
+        }
         std::string trueLabel = inst.operands[1]; // 真分支标签
         std::string falseLabel = inst.operands[2]; // 假分支标签
 
-        if (_regMap.find(cond) != _regMap.end()) {
+        std::string condReg;
+        if (global_cond) {
+            _textSection << "  # Conditional branch on global variable " << cond << "\n";
+            condReg = getTempReg(); // 如果是全局变量，直接加载到临时寄存器
+            _textSection << "  lw " << condReg << ", " << cond << "\n"; // 从全局变量加载值
+            _textSection << "  andi " << condReg << ", " << condReg << ", 1\n"; // 确保条件是布尔值
+            _textSection << "  beqz " << condReg << ", " << falseLabel << "\n"; // 如果条件为0，跳转到假分支
+            _textSection << "  j " << trueLabel << "\n"; // 否则跳转到真分支
+        } else if (_regMap.find(cond) != _regMap.end()) {
             // 如果条件在寄存器中
             _textSection << "  # Conditional branch on " << cond << "\n";
             _textSection << "  beqz " << _regMap[cond] << ", " << falseLabel << "\n"; // 如果条件为0，跳转到假分支
             _textSection << "  j " << trueLabel << "\n"; // 否则跳转到真分支
         } else {
-            throw std::runtime_error("Condition not found in register map: " + cond);
+            // 如果条件在栈上
+            _textSection << "  # Conditional branch on stack variable " << cond << "\n";
+            int offset = _currentFrame.getOffset(cond);
+            std::string condReg = getTempReg(); // 分配一个临时寄存器
+            _textSection << "  lw " << condReg << ", " << offset << "(sp)\n"; // 从栈加载条件值
+            _textSection << "  andi " << condReg << ", " << condReg << ", 1\n"; // 确保条件是布尔值
+            _textSection << "  beqz " << condReg << ", " << falseLabel << "\n"; // 如果条件为0，跳转到假分支
+            _textSection << "  j " << trueLabel << "\n"; // 否则跳转到真分支
         }
     } else {
         throw std::runtime_error("Invalid branch instruction format");
@@ -710,6 +743,126 @@ void RiscvGenerator::generateCall(const LLVM_INS &intr) {
     }
 }
 
+void RiscvGenerator::generateIcmp(const LLVM_INS &intr) {
+    // 示例: %c = icmp ne i32 %a, %b
+    // 转换:
+    //   lw t0, a
+    //   lw t1, b
+    //   li t2, 0
+    //   bne t0, t1, neq_label
+    //   li t2, 1
+    //neq_label:
+    std::string dest = intr.result; // 目标位置
+    if (dest[0] == '%' || dest[0] == '@') {
+        dest = dest.substr(1); // 去掉前缀 '%'
+    }
+    std::string op1 = intr.operands[0]; // 第一个操作数
+    bool global_op1 = op1[0] == '@'; // 检查是否是全局变量
+    if (op1[0] == '%' || op1[0] == '@') {
+        op1 = op1.substr(1); // 去掉前缀 '%'
+    }
+    std::string op2 = intr.operands[1]; // 第二个操作数
+    bool global_op2 = op2[0] == '@'; // 检查是否是全局变量
+    if (op2[0] == '%' || op2[0] == '@') {
+        op2 = op2.substr(1); // 去掉前缀 '%'
+    }
+
+    std::string tempReg1;
+    std::string tempReg2;
+    std::string resultReg;
+
+    _textSection << "  # Icmp" << " " << dest << " = " << op1 << " != " << op2 << "\n";
+
+    // 加载第一个操作数
+    if (_regMap.find(op1) != _regMap.end()) {
+        tempReg1 = _regMap[op1]; // 如果在寄存器中
+    } else if (global_op1) {
+        // 如果是全局变量，直接加载到临时寄存器
+        tempReg1 = getTempReg();
+        _textSection << "  lw " << tempReg1 << ", " << op1 << "\n"; // 从全局变量加载值
+    } else if (std::regex_match(op1, std::regex(R"(\d+)"))) {
+        // 如果是立即数，直接将其加载到临时寄存器
+        tempReg1 = getTempReg();
+        _textSection << "  li " << tempReg1 << ", " << op1 << "\n"; // 将立即数加载到寄存器
+    } else {
+        tempReg1 = getTempReg(); // 否则分配一个临时寄存器
+        int offset = _currentFrame.getOffset(op1);
+        _textSection << "  lw " << tempReg1 << ", " << offset << "(sp)\n"; // 从栈加载值
+    }
+    // 加载第二个操作数
+    if (_regMap.find(op2) != _regMap.end()) {
+        tempReg2 = _regMap[op2]; // 如果在寄存器中
+    } else if (global_op2) {
+        // 如果是全局变量，直接加载到临时寄存器
+        tempReg2 = getTempReg();
+        _textSection << "  lw " << tempReg2 << ", " << op2 << "\n"; // 从全局变量加载值
+    } else if (std::regex_match(op2, std::regex(R"(\d+)"))) {
+        // 如果是立即数，直接将其加载到临时寄存器
+        tempReg2 = getTempReg();
+        _textSection << "  li " << tempReg2 << ", " << op2 << "\n"; // 将立即数加载到寄存器
+    } else {
+        tempReg2 = getTempReg(); // 否则分配一个临时寄存器
+        int offset = _currentFrame.getOffset(op2);
+        _textSection << "  lw " << tempReg2 << ", " << offset << "(sp)\n"; // 从栈加载值
+    }
+    // 执行不等于比较
+    resultReg = getTempReg(); // 分配一个新的临时寄存器来存储结果
+    _textSection << "  li " << resultReg << ", 0\n"; // 默认结果为0
+    if (intr.type == LLVM_INS_T::NEQ) {
+        _textSection << "  bne " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果不相等，跳转到 neq 标签
+    } else {
+        _textSection << "  beq " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果相等，跳转到 eq 标签
+    }
+    _textSection << "  li " << resultReg << ", 1\n"; // 如果相等，结果为1
+    _textSection << "Icmp_" << dest << ":\n"; // neq 标签
+    // 更新寄存器映射
+    _regMap[dest] = resultReg; // 将结果寄存器映射到目标变量
+    // 将结果存储到栈上
+    _currentFrame.addLocal(dest, 4);
+    int destOffset = _currentFrame.getOffset(dest);
+    _textSection << "  sw " << resultReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
+}
+
+void RiscvGenerator::generatePhi(const LLVM_INS &intr) {
+    // 示例: %a = phi i32 [ 1, %bb1 ], [ 2, %bb2 ]
+
+    std::string resReg = "s1";
+    if (intr.result == "1") {
+        std::string phiSource = intr.operands[0];
+        if (phiSource[0] == '%' || phiSource[0] == '@') {
+            phiSource = phiSource.substr(1); // 去掉前缀 '%'
+        }
+        _textSection << "  # Phi source" << "\n";
+        if (phiSource == "true") {
+            _textSection << "  li " << resReg << ", 1\n"; // 将 true 转换为 1
+        }else if (phiSource == "false") {
+            _textSection << "   li " << resReg << ", 0\n"; // 将 false 转换为 0
+        }else if (std::regex_match(phiSource, std::regex(R"(\d+)"))) {
+            _textSection << "  li " << resReg << ", " << phiSource << "\n"; // 如果是立即数，直接加载到寄存器
+        } else {
+            // 如果是变量，检查是否在寄存器中
+            if (_regMap.find(phiSource) != _regMap.end()) {
+                _textSection << "  mv " << resReg << ", " << _regMap[phiSource] << "\n"; // 如果在寄存器中
+            } else {
+                int offset = _currentFrame.getOffset(phiSource);
+                _textSection << "  lw " << resReg << ", " << offset << "(sp)\n"; // 从栈加载值
+                _textSection << "   andi " << resReg << ", " << resReg << ", 1\n"; // 确保结果是布尔值
+            }
+        }
+        return;
+    }
+    std::string dest = intr.result; // 目标位置
+    if (dest[0] == '%' || dest[0] == '@') {
+        dest = dest.substr(1); // 去掉前缀 '%'
+    }
+    _textSection << "  # Phi instruction for " << dest << "\n";
+    std::string phiReg = getTempReg(); // 分配一个临时寄存器来存储结果
+    _textSection << "   mv " << phiReg << ", " << resReg << "\n"; // 初始化结果寄存器
+    _regMap[dest] = phiReg; // 更新寄存器映射
+    _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
+    int destOffset = _currentFrame.getOffset(dest);
+    _textSection << "  sw " << phiReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
+}
 
 std::string RiscvGenerator::getTempReg() {
     tempRegIndex = tempRegIndex % 7; // 使用 7 个临时寄存器 t0-t6

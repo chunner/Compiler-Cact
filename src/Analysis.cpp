@@ -396,22 +396,22 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         if (!elseifLabel.empty()) {
             ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << elseifLabel;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + cond, "label %" + thenLabel, "label %" + elseifLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {cond, thenLabel, elseifLabel }));
         } else if (!elseLabel.empty()) {
             ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << elseLabel;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + cond, "label %" + thenLabel, "label %" + elseLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {cond,  thenLabel, elseLabel }));
         } else {
             ss << "br i1 " << cond << ", label %" << thenLabel << ", label %" << endLabel;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + cond, "label %" + thenLabel, "label %" + endLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { cond,  thenLabel, endLabel }));
         }
         // then
         LLVMBasicBlock *thenBlock = new LLVMBasicBlock(thenLabel);
         currentBlock = thenBlock;
         visitStmt(context->stmt());
         currentBlock->addInstruction("br label %" + endLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + endLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {endLabel }));
         currentFunction->addBasicBlock(thenBlock);
 
         // else if
@@ -433,13 +433,13 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             std::string elsethenLabel = newLabel("elseif_then");
             elseifSS << "br i1 " << elseifCond << ", label %" << elsethenLabel << ", label %" << nextLabel;
             currentBlock->addInstruction(elseifSS.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + elseifCond, "label %" + elsethenLabel, "label %" + nextLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {elseifCond, elsethenLabel, nextLabel }));
             // elseif then
             LLVMBasicBlock *elseifThenBlock = new LLVMBasicBlock(elsethenLabel);
             currentBlock = elseifThenBlock;
             visitStmt(context->elseIFStmt(i)->stmt());
             currentBlock->addInstruction("br label %" + endLabel);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + endLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {endLabel }));
             currentFunction->addBasicBlock(elseifThenBlock);
             // update elseifLabel for next iteration
             if (i < context->elseIFStmt().size() - 1) {
@@ -454,7 +454,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             currentFunction->addBasicBlock(elseBlock);
             visitStmt(context->elseStmt()->stmt());
             currentBlock->addInstruction("br label %" + endLabel);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + endLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {endLabel }));
         }
 
         // end
@@ -472,20 +472,20 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
         LLVMBasicBlock *condBlock = new LLVMBasicBlock(condLabel);
         currentFunction->addBasicBlock(condBlock);
         currentBlock->addInstruction("br label %" + condLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + condLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {condLabel }));
         currentBlock = condBlock;
         std::string cond = std::any_cast<std::string>(visitCond(context->cond()));
         std::stringstream ss;
         ss << "br i1 " << cond << ", label %" << bodyLabel << ", label %" << endLabel;
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + cond, "label %" + bodyLabel, "label %" + endLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {cond, bodyLabel, endLabel }));
         // body
         LLVMBasicBlock *bodyBlock = new LLVMBasicBlock(bodyLabel);
         currentFunction->addBasicBlock(bodyBlock);
         currentBlock = bodyBlock;
         visitStmt(context->stmt());
         currentBlock->addInstruction("br label %" + condLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + condLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {condLabel }));
         // end
         LLVMBasicBlock *endBlock = new LLVMBasicBlock(endLabel);
         currentFunction->addBasicBlock(endBlock);
@@ -498,7 +498,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             exit(EXIT_FAILURE);
         } else {
             currentBlock->addInstruction("br label %" + curEndLabel);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + curEndLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {curEndLabel }));
         }
     } else if (context->CONTINUE_KW()) { // continue
         if (curCondLabel.empty()) {
@@ -506,7 +506,7 @@ std::any Analysis::visitStmt(CactParser::StmtContext *context) {
             exit(EXIT_FAILURE);
         } else {
             currentBlock->addInstruction("br label %" + curCondLabel);
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + curCondLabel }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {curCondLabel }));
         }
     } else if (context->RETURN_KW()) { // return exp;
         if (context->exp()) {
@@ -543,7 +543,7 @@ std::any Analysis::visitCond(CactParser::CondContext *context) {
         std::stringstream ss;
         ss << "%" << newexp << " = icmp ne i32 " << exp.name << ", 0"; // convert i32 to i1
         currentBlock->addInstruction(ss.str());
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, "%" + newexp, { "i32 " + exp.name, "0" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::NEQ, newexp, {exp.name, "0" }));
         return std::string("%") + newexp; // return the condition as a string
     }
     if (exp.type.baseType != BaseType::I1 || !exp.type.dimSizes.empty()) {
@@ -1070,7 +1070,8 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     for (int i = 1; i < context->eqExp().size(); i++) {
         std::string nextLabel = newLabel("land_next");
         currentBlock->addInstruction("br i1 " + left.name + ", label %" + nextLabel + ", label %" + finalLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name, "label %" + nextLabel, "label %" + finalLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", { "false" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name,nextLabel,finalLabel }));
         phiSources.emplace_back("false", currentBlock->label);
         currentBlock = new LLVMBasicBlock(nextLabel);
         currentFunction->addBasicBlock(currentBlock);
@@ -1089,7 +1090,8 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         left = land;
     }
     currentBlock->addInstruction("br label %" + finalLabel);
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + finalLabel }));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", {land.name}));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {finalLabel }));
     phiSources.emplace_back(land.name, currentBlock->label);
     currentBlock = new LLVMBasicBlock(finalLabel);
     std::string phiName = "%" + newSSA("land_phi");
@@ -1102,7 +1104,7 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         }
     }
     currentBlock->addInstruction(phiSS.str());
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, phiName, { "i1", phiSS.str() }));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, phiName, {phiSS.str() }));
     currentFunction->addBasicBlock(currentBlock);
     return LLVMValue(phiName, VarType(BaseType::I1));
 }
@@ -1127,8 +1129,9 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     std::vector<std::pair<std::string, std::string>> phiSources;
     for (int i = 1; i < context->lAndExp().size(); i++) {
         std::string nextLabel = newLabel("lor_next");
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", { "true" }));
         currentBlock->addInstruction("br i1 " + left.name + ", label %" + finalLabel + ", label %" + nextLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "i1 " + left.name, "label %" + finalLabel, "label %" + nextLabel }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name, finalLabel, nextLabel }));
         phiSources.emplace_back("true", currentBlock->label);
         currentBlock = new LLVMBasicBlock(nextLabel);
         currentFunction->addBasicBlock(currentBlock);
@@ -1146,8 +1149,9 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::OR, lor.name, { left.name, right.name , "i1"}));
         left = lor;
     }
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", {lor.name}));
     currentBlock->addInstruction("br label %" + finalLabel);
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", { "label %" + finalLabel }));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {finalLabel }));
     phiSources.emplace_back(lor.name, currentBlock->label);
     currentBlock = new LLVMBasicBlock(finalLabel);
     currentFunction->addBasicBlock(currentBlock);
@@ -1161,7 +1165,7 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         }
     }
     currentBlock->addInstruction(phiSS.str());
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, phiName, { "i1", phiSS.str() }));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, phiName, {phiSS.str() }));
     return LLVMValue(phiName, VarType(BaseType::I1));
 }
 std::any Analysis::visitIntConst(CactParser::IntConstContext *context) {
