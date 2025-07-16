@@ -230,6 +230,10 @@ void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
             break;
         case LLVM_INS_T::NEQ:
         case LLVM_INS_T::EQ:
+        case LLVM_INS_T::LT:
+        case LLVM_INS_T::GT:
+        case LLVM_INS_T::GE:
+        case LLVM_INS_T::LE:
             generateIcmp(inst);
             break;
         case LLVM_INS_T::PHI:
@@ -817,8 +821,16 @@ void RiscvGenerator::generateIcmp(const LLVM_INS &intr) {
     _textSection << "  li " << resultReg << ", 1\n"; // 默认结果为0
     if (intr.type == LLVM_INS_T::NEQ) {
         _textSection << "  bne " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果不相等，跳转到 neq 标签
-    } else {
+    } else if (intr.type == LLVM_INS_T::EQ) {
         _textSection << "  beq " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果相等，跳转到 eq 标签
+    } else if (intr.type == LLVM_INS_T::LT) {
+        _textSection << "   blt " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果小于，跳转到 lt 标签
+    }else if (intr.type == LLVM_INS_T::GT) {
+        _textSection << "   bgt " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果大于，跳转到 gt 标签
+    } else if (intr.type == LLVM_INS_T::LE) {
+        _textSection << "   ble " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果小于等于，跳转到 le 标签
+    } else if (intr.type == LLVM_INS_T::GE) {
+        _textSection << "   bge " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果大于等于，跳转到 ge 标签
     }
     _textSection << "  li " << resultReg << ", 0\n"; // 如果相等，结果为1
     _textSection << "Icmp_" << dest << ":\n"; // neq 标签
