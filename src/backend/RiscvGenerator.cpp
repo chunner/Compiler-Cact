@@ -235,6 +235,10 @@ void RiscvGenerator::generateBasicBlock(const LLVMBasicBlock &block) {
         case LLVM_INS_T::PHI:
             generatePhi(inst);
             break;
+        case LLVM_INS_T::OR:
+        case LLVM_INS_T::AND:
+            generateLogical(inst);
+            break;
         default:
             // 其他指令类型暂不处理
             break;
@@ -462,6 +466,7 @@ void RiscvGenerator::generateBranch(const LLVM_INS &inst) {
         if (targetLabel[0] == '%') {
             targetLabel = targetLabel.substr(1); // 去掉前缀 '%'
         }
+        targetLabel = _currentFunction.name + "_" + targetLabel; // 添加函数名前缀
         _textSection << "  # Unconditional branch to " << targetLabel << "\n";
         _textSection << "  j " << targetLabel << "\n";
     } else if (inst.operands.size() == 3) {
@@ -472,7 +477,9 @@ void RiscvGenerator::generateBranch(const LLVM_INS &inst) {
             cond = cond.substr(1); // 去掉前缀 '%'
         }
         std::string trueLabel = inst.operands[1]; // 真分支标签
+        trueLabel = _currentFunction.name + "_" + trueLabel; // 添加函数名前缀
         std::string falseLabel = inst.operands[2]; // 假分支标签
+        falseLabel = _currentFunction.name + "_" + falseLabel; // 添加函数名前缀
 
         std::string condReg;
         if (global_cond) {
@@ -807,13 +814,13 @@ void RiscvGenerator::generateIcmp(const LLVM_INS &intr) {
     }
     // 执行不等于比较
     resultReg = getTempReg(); // 分配一个新的临时寄存器来存储结果
-    _textSection << "  li " << resultReg << ", 0\n"; // 默认结果为0
+    _textSection << "  li " << resultReg << ", 1\n"; // 默认结果为0
     if (intr.type == LLVM_INS_T::NEQ) {
         _textSection << "  bne " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果不相等，跳转到 neq 标签
     } else {
         _textSection << "  beq " << tempReg1 << ", " << tempReg2 << ", Icmp_" << dest << "\n"; // 如果相等，跳转到 eq 标签
     }
-    _textSection << "  li " << resultReg << ", 1\n"; // 如果相等，结果为1
+    _textSection << "  li " << resultReg << ", 0\n"; // 如果相等，结果为1
     _textSection << "Icmp_" << dest << ":\n"; // neq 标签
     // 更新寄存器映射
     _regMap[dest] = resultReg; // 将结果寄存器映射到目标变量
@@ -862,6 +869,88 @@ void RiscvGenerator::generatePhi(const LLVM_INS &intr) {
     _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
     int destOffset = _currentFrame.getOffset(dest);
     _textSection << "  sw " << phiReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
+}
+
+void RiscvGenerator::generateLogical(const LLVM_INS &intr) {
+    // 示例: %c = and i32 %a, %b
+    // 转换:
+    //   lw t0, a
+    //   lw t1, b
+    //   and t2, t0, t1
+    //   sw t2, c
+
+    std::string dest = intr.result; // 目标位置
+    if (dest[0] == '%' || dest[0] == '@') {
+        dest = dest.substr(1); // 去掉前缀 '%'
+    }
+    std::string op1 = intr.operands[0]; // 第一个操作数
+    bool global_op1 = op1[0] == '@'; // 检查是否是全局变量
+    if (op1[0] == '%' || op1[0] == '@') {
+        op1 = op1.substr(1); // 去掉前缀 '%'
+    }
+    std::string op2 = intr.operands[1]; // 第二个操作数
+    bool global_op2 = op2[0] == '@'; // 检查是否是全局变量
+    if (op2[0] == '%' || op2[0] == '@') {
+        op2 = op2.substr(1); // 去掉前缀 '%'
+    }
+
+    std::string tempReg1;
+    std::string tempReg2;
+    std::string resultReg;
+
+    _textSection << "  # Logical operation " << dest << " = " << op1 << " " << "op" << " " << op2 << "\n";
+
+    // 加载第一个操作数
+    if (_regMap.find(op1) != _regMap.end()) {
+        tempReg1 = _regMap[op1]; // 如果在寄存器中
+    } else if (global_op1) {
+        // 如果是全局变量，直接加载到临时寄存器
+        tempReg1 = getTempReg();
+        _textSection << "  lw " << tempReg1 << ", " << op1 << "\n"; // 从全局变量加载值
+        _textSection << "  andi " << tempReg1 << ", " << tempReg1 << ", 1\n"; // 确保条件是布尔值
+    } else if (std::regex_match(op1, std::regex(R"(\d+)"))) {
+        // 如果是立即数，直接将其加载到临时寄存器
+        tempReg1 = getTempReg();
+        _textSection << "  li " << tempReg1 << ", " << op1 << "\n"; // 将立即数加载到寄存器
+    } else {
+        tempReg1 = getTempReg(); // 否则分配一个临时寄存器
+        int offset = _currentFrame.getOffset(op1);
+        _textSection << "  lw " << tempReg1 << ", " << offset << "(sp)\n"; // 从栈加载值
+        _textSection << "  andi " << tempReg1 << ", " << tempReg1 << ", 1\n"; // 确保条件是布尔值
+    }
+    // 加载第二个操作数
+    if (_regMap.find(op2) != _regMap.end()) {
+        tempReg2 = _regMap[op2]; // 如果在寄存器中
+    } else if (global_op2) {
+        // 如果是全局变量，直接加载到临时寄存器
+        tempReg2 = getTempReg();
+        _textSection << "  lw " << tempReg2 << ", " << op2 << "\n"; // 从全局变量加载值
+        _textSection << "  andi " << tempReg2 << ", " << tempReg2 << ", 1\n"; // 确保条件是布尔值
+    } else if (std::regex_match(op2, std::regex(R"(\d+)"))) {
+        // 如果是立即数，直接将其加载到临时寄存器
+        tempReg2 = getTempReg();
+        _textSection << "  li " << tempReg2 << ", " << op2 << "\n"; // 将立即数加载到寄存器
+    } else {
+        tempReg2 = getTempReg(); // 否则分配一个临时寄存器
+        int offset = _currentFrame.getOffset(op2);
+        _textSection << "  lw " << tempReg2 << ", " << offset << "(sp)\n"; // 从栈加载值
+        _textSection << "  andi " << tempReg2 << ", " << tempReg2 << ", 1\n"; // 确保条件是布尔值
+    }
+    // 执行逻辑操作
+    resultReg = getTempReg(); // 分配一个新的临时寄存器来存储结果
+    if (intr.type == LLVM_INS_T::AND) {
+        _textSection << "  and " << resultReg << ", " << tempReg1 << ", " << tempReg2 << "\n"; // 执行与操作
+    } else if (intr.type == LLVM_INS_T::OR) {
+        _textSection << "  or " << resultReg << ", " << tempReg1 << ", " << tempReg2 << "\n"; // 执行或操作
+    } else {
+        throw std::runtime_error("Unsupported logical operation type");
+    }
+    // 更新寄存器映射
+    _regMap[dest] = resultReg; // 将结果寄存器映射到目标变量
+    // 将结果存储到栈上
+    _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
+    int destOffset = _currentFrame.getOffset(dest);
+    _textSection << "  sw " << resultReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 std::string RiscvGenerator::getTempReg() {

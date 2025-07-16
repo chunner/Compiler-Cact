@@ -88,6 +88,7 @@ private:
     void generateRet(const LLVM_INS &instr);
     void generateGEP(const LLVM_INS &instr);
     void generateIcmp(const LLVM_INS &instr);
+    void generateLogical(const LLVM_INS &instr);
 
     // 关键！从LLVM变量名 (e.g., "%1") 到其存储位置的映射
     // std::unordered_map<std::string, VariableLocation> _locationMap;
