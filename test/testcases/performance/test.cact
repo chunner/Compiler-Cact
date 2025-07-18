@@ -1,0 +1,15 @@
+int foo(int x[][2]){
+    return x[3][1];
+}
+int boo(int x[3][2]){
+    return x[2][1];
+}
+
+int main(){
+    int a[3][2] = {{1, 2}, {3, 4}, {5,6}}; 
+    int i ;
+    i = a[2][1];
+    i = foo(a);
+    i = boo(a);
+    return 0;
+}
