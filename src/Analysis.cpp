@@ -236,7 +236,7 @@ std::any Analysis::visitVarDef(CactParser::VarDefContext *context) {
                 currentBlock->addInstruction(ss.str());
                 currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::STORE, "", { "0",ssa, TypeToLLVM(currentBType) }));
             } else {
-                // if the variable is an array, we can just leave it as uninitialized
+                // if the variable is an array, we can just leave iit as uninitialized
                 std::stringstream ss;
                 std::string identcast = "%" + newSSA("cast_" + ident);
                 ss << identcast << " = bitcast " << TypeToLLVM(currentT) << "* " << ssa << " to i8*";
@@ -770,14 +770,14 @@ std::any Analysis::visitPrimaryExp(CactParser::PrimaryExpContext *context) {
             ss.str("");
             ss << load << " = load " << BTypeToLLVM(s->type.baseType) << ", " << BTypeToLLVM(s->type.baseType) << "* " << ptr;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { BTypeToLLVM(s->type.baseType) , ptr }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { std::to_string(VarType(s->type.baseType).getArraySize()) , ptr }));
             return LLVMValue(load, VarType(s->type.baseType));
         } else {
             std::string load = "%" + newSSA("load");
             std::stringstream ss;
             ss << load << " = load " << TypeToLLVM(s->type) << ", " << TypeToLLVM(s->type) << "* " << identssa;
             currentBlock->addInstruction(ss.str());
-            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { TypeToLLVM(s->type), identssa }));
+            currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::LOAD, load, { std::to_string(s->type.getArraySize()), identssa }));
             return LLVMValue(load, VarType(s->type.baseType));
         }
     } else if (context->number()) {
@@ -1070,7 +1070,7 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
     for (int i = 1; i < context->eqExp().size(); i++) {
         std::string nextLabel = newLabel("land_next");
         currentBlock->addInstruction("br i1 " + left.name + ", label %" + nextLabel + ", label %" + finalLabel);
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", { "false" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "null", { "false" }));
         currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name,nextLabel,finalLabel }));
         phiSources.emplace_back("false", currentBlock->label);
         currentBlock = new LLVMBasicBlock(nextLabel);
@@ -1090,7 +1090,7 @@ std::any Analysis::visitLAndExp(CactParser::LAndExpContext *context) {
         left = land;
     }
     currentBlock->addInstruction("br label %" + finalLabel);
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", {land.name}));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "null", {land.name}));
     currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {finalLabel }));
     phiSources.emplace_back(land.name, currentBlock->label);
     currentBlock = new LLVMBasicBlock(finalLabel);
@@ -1129,7 +1129,7 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
     std::vector<std::pair<std::string, std::string>> phiSources;
     for (int i = 1; i < context->lAndExp().size(); i++) {
         std::string nextLabel = newLabel("lor_next");
-        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", { "true" }));
+        currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "null", { "true" }));
         currentBlock->addInstruction("br i1 " + left.name + ", label %" + finalLabel + ", label %" + nextLabel);
         currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {left.name, finalLabel, nextLabel }));
         phiSources.emplace_back("true", currentBlock->label);
@@ -1149,7 +1149,7 @@ std::any Analysis::visitLOrExp(CactParser::LOrExpContext *context) {
         currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::OR, lor.name, { left.name, right.name , "i1"}));
         left = lor;
     }
-    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "1", {lor.name}));
+    currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::PHI, "null", {lor.name}));
     currentBlock->addInstruction("br label %" + finalLabel);
     currentBlock->addLLVMInstruction(LLVM_INS(LLVM_INS_T::BR, "", {finalLabel }));
     phiSources.emplace_back(lor.name, currentBlock->label);

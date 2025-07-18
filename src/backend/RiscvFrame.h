@@ -11,15 +11,9 @@ public:
     // 在分析阶段调用：为 alloca 指令分配栈空间
     void addLocal(const std::string& name, int size);
 
-    // 在分析阶段调用：为 LLVM 虚拟寄存器 (%0, %1...) 分配栈空间
-    // 这是我们简化寄存器分配的关键：所有中间值都存到栈上
-    void addVirtualRegister(const std::string& name, int size = 4);
-
     // 获取变量/寄存器的偏移量
     int getOffset(const std::string& name) const;
-
-    // 在分析阶段结束后调用：计算总栈帧大小，考虑对齐
-    void calculateFrameSize();
+    int getSize(const std::string &name) const;
 
     // 获取总大小，用于生成函数序言
     int getTotalFrameSize() const { return _totalSize; }
@@ -42,6 +36,8 @@ private:
     int _totalSize = 0;
     // 一个 map 统一存储所有东西（局部变量、虚拟寄存器）的偏移量
     std::unordered_map<std::string, int> _locationMap;
+    std::unordered_map<std::string, int> _sizeMap;
+
 };
 
 

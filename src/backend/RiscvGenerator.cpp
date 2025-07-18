@@ -1,6 +1,12 @@
 #include "RiscvGenerator.h"
 #include <regex>
 
+std::string ssa2riscv(const std::string &ssa) {
+    if (ssa[0] == '@' || ssa[0] == '%') {
+        return ssa.substr(1); // 去掉前缀 '@' 或 '%'
+    }
+    return ssa; // 如果没有前缀，直接返回
+}
 
 RiscvGenerator::RiscvGenerator(const LLVMModule &module) :_module(module) {
 };
@@ -152,13 +158,6 @@ void RiscvGenerator::generateFunction(const LLVMFunction &func) {
     // 遍历所有指令，计算栈帧大小
     _currentFrame.analyzeFunction(func);
     int frameSize = _currentFrame.getTotalFrameSize();
-    // for (const auto &block : func.basicblocks) {
-    //     for (const auto &inst : block->llvm_ins) {
-    //         if (inst.type == LLVM_INS_T::ALLOCA) {
-    //             frameSize += std::stoi(inst.operands[1]);
-    //         }
-    //     }
-    // }
 
 
     // --- 函数序言 (Prologue) ---
@@ -254,18 +253,18 @@ void RiscvGenerator::generateAlloca(const LLVM_INS &inst) {
     // 示例: %a = alloca i32
     // 转换:
 
-    std::string varName = inst.result.substr(1); // 去掉前缀 '%'
-    int size = std::stoi(inst.operands[1]); // 第二个操作数是分配的字节数
+    // std::string varName = inst.result.substr(1); // 去掉前缀 '%'
+    // int size = std::stoi(inst.operands[1]); // 第二个操作数是分配的字节数
 
-    _currentFrame.addLocal(varName + "*", size);
-    int offset = _currentFrame.getOffset(varName + "*");
+    // _currentFrame.addLocal(varName + "*", size);
+    // int offset = _currentFrame.getOffset(varName + "*");
 
-    _currentFrame.addLocal(varName, 8);
-    _textSection << "  # Alloca " << varName << " of size " << size << "\n";
-    int varOffset = _currentFrame.getOffset(varName);
-    std::string tempReg = getTempReg(); // 分配一个临时寄存器
-    _textSection << "  addi " << tempReg << ", sp, " << offset << "\n"; // 将栈指针偏移量加载到临时寄存器
-    _textSection << "  sd " << tempReg << ", " << varOffset << "(sp)\n"; // 将临时寄存器的值存储到栈上
+    // _currentFrame.addLocal(varName, 8);
+    // _textSection << "  # Alloca " << varName << " of size " << size << "\n";
+    // int varOffset = _currentFrame.getOffset(varName);
+    // std::string tempReg = getTempReg(); // 分配一个临时寄存器
+    // _textSection << "  addi " << tempReg << ", sp, " << offset << "\n"; // 将栈指针偏移量加载到临时寄存器
+    // _textSection << "  sd " << tempReg << ", " << varOffset << "(sp)\n"; // 将临时寄存器的值存储到栈上
 }
 
 void RiscvGenerator::generateLoad(const LLVM_INS &inst) {
@@ -275,12 +274,10 @@ void RiscvGenerator::generateLoad(const LLVM_INS &inst) {
     //   lw t0, 0(t1) // 假设 %b 在栈上
     //   sw t0, 4(sp)
 
-    std::string dest = inst.result.substr(1); // 目标位置
+    std::string dest = ssa2riscv(inst.result); // 目标位置
     std::string srcPtr = inst.operands[1]; // 源指针
     bool global_src = srcPtr[0] == '@'; // 检查是否是全局变量
-    if (srcPtr[0] == '%' || srcPtr[0] == '@') {
-        srcPtr = srcPtr.substr(1); // 去掉前缀 '%'
-    }
+    srcPtr = srcPtr.substr(1); // 去掉前缀 '%'
 
     _textSection << "  # Load " << dest << " from " << srcPtr << "\n";
     std::string tempReg;
@@ -288,23 +285,19 @@ void RiscvGenerator::generateLoad(const LLVM_INS &inst) {
         // 如果是立即数，直接将其加载到临时寄存器
         tempReg = getTempReg();
         _textSection << "  li " << tempReg << ", " << srcPtr << "\n"; // 将立即数加载到寄存器
-    } else if (_regMap.find(srcPtr + "*") != _regMap.end()) {
-        tempReg = _regMap[srcPtr + "*"]; // 如果在寄存器中
     } else if (global_src) {
         // 如果是全局变量，直接加载到临时寄存器
         tempReg = getTempReg();
         _textSection << "  lw " << tempReg << ", " << srcPtr << "\n"; // 从全局变量加载值
+    } else if (srcPtr.substr(0, 3) == "ptr" ) {
+        std::string ptrReg = _regMap[srcPtr]; // 如果是指针，直接从寄存器加载
+        tempReg = getTempReg(); // 分配一个临时寄存器
+        _textSection << "  lw " << tempReg << ", 0(" << ptrReg << ")\n"; // 从指针寄存器加载值
     } else {
-        std::string addrReg = getTempReg(); // 分配一个临时寄存器来存储地址
-        _textSection << "  ld " << addrReg << ", " << _currentFrame.getOffset(srcPtr) << "(sp)\n"; // 从栈加载地址
-        tempReg = getTempReg(); // 分配一个新的临时寄存器来存储加载的值
-        _textSection << "  lw " << tempReg << ", 0(" << addrReg << ")\n"; // 从地址加载值
+        tempReg = getTempReg(); // 否则分配一个临时寄存器
+        int offset = _currentFrame.getOffset(srcPtr);
+        _textSection << "  lw " << tempReg << ", " << offset << "(sp)\n"; // 从栈加载值
     }
-
-    // 将加载的值存储到目标位置
-    _currentFrame.addLocal(dest, 4);
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sw " << tempReg << ", " << destOffset << "(sp)\n"; // 将值存储到栈上
 
     // 更新寄存器映射
     _regMap[dest] = tempReg;
@@ -316,15 +309,10 @@ void RiscvGenerator::generateStore(const LLVM_INS &inst) {
     //   lw t0, a
     //   sw t0, 0(b)
 
-    std::string src = inst.operands[0]; // 源位置
+    std::string src = ssa2riscv(inst.operands[0]); // 源操作数
     std::string destPtr = inst.operands[1]; // 目标指针
-    if (src[0] == '%' || src[0] == '@') {
-        src = src.substr(1); // 去掉前缀 '%'
-    }
     bool global_dest = destPtr[0] == '@'; // 检查是否是全局变量
-    if (destPtr[0] == '%' || destPtr[0] == '@') {
-        destPtr = destPtr.substr(1); // 去掉前缀 '%'
-    }
+    destPtr = ssa2riscv(destPtr); // 去掉前缀 '%'
 
     _textSection << "  # Store " << src << " to " << destPtr << "\n";
     // 将源操作数加载到临时寄存器
@@ -337,7 +325,8 @@ void RiscvGenerator::generateStore(const LLVM_INS &inst) {
         srcReg = _regMap[src]; // 如果在寄存器中
     } else {
         srcReg = getTempReg(); // 否则分配一个临时寄存器
-        _textSection << "  lw " << srcReg << ", " << src << "\n"; // 从栈加载值
+        int offset = _currentFrame.getOffset(src);
+        _textSection << "  lw " << srcReg << ", " << offset << "(sp)\n"; // 从栈加载值
     }
 
     // 存储到目标指针
@@ -345,19 +334,21 @@ void RiscvGenerator::generateStore(const LLVM_INS &inst) {
     if (global_dest) {
         destReg = getTempReg();
         _textSection << "  la " << destReg << ", " << destPtr << "\n"; // 从全局变量加载地址
-    } else if (_regMap.find(destPtr) != _regMap.end()) {
-        destReg = _regMap[destPtr]; // 如果在寄存器中
+        _textSection << "  sw " << srcReg << ", 0(" << destReg << ")\n"; // 将值存储到目标地址
+        if (_regMap.find(destPtr) != _regMap.end()) {
+            _regMap.erase(destPtr); // 如果目标指针在寄存器映射中，删除它
+        }
+    } else if (destPtr.substr(0, 3) == "ptr") {
+        // 如果是指针，直接从寄存器加载
+        destReg = _regMap[destPtr]; // 获取指针寄存器
+        _textSection << "  sw " << srcReg << ", 0(" << destReg << ")\n"; // 将值存储到指针寄存器指向的地址
     } else {
-        destReg = getTempReg(); // 否则分配一个临时寄存器
         int offset = _currentFrame.getOffset(destPtr);
-        // 从栈加载目标指针地址, 地址长度为8B
-        _textSection << "  ld " << destReg << ", " << offset << "(sp)\n"; // 从栈加载地址
+        _textSection << "  sw " << srcReg << ", " << offset << "(sp)\n"; // 将值存储到栈上
+        if (_regMap.find(destPtr) != _regMap.end()) {
+            _regMap.erase(destPtr); // 如果目标指针在寄存器映射中，删除它
+        }
     }
-    // 将源寄存器的值存储到目标指针地址
-    _textSection << "  sw " << srcReg << ", 0(" << destReg << ")\n"; // 将值存储到目标地址
-
-    // 更新寄存器映射
-    // _regMap[destPtr + "*"] = srcReg;
 }
 
 void RiscvGenerator::generateArithmetic(const LLVM_INS &inst) {
@@ -368,20 +359,13 @@ void RiscvGenerator::generateArithmetic(const LLVM_INS &inst) {
     //   add t2, t0, t1
     //   sw t2, c
 
-    std::string dest = inst.result; // 目标位置
-    if (dest[0] == '%' || dest[0] == '@') {
-        dest = dest.substr(1); // 去掉前缀 '%'
-    }
+    std::string dest = ssa2riscv(inst.result); // 目标寄存器
     std::string op1 = inst.operands[0]; // 第一个操作数
     bool global_op1 = op1[0] == '@'; // 检查是否是全局变量
-    if (op1[0] == '%' || op1[0] == '@') {
-        op1 = op1.substr(1); // 去掉前缀 '%'
-    }
+    op1 = ssa2riscv(op1); // 去掉前缀 '%'
     std::string op2 = inst.operands[1]; // 第二个操作数
     bool global_op2 = op2[0] == '@'; // 检查是否是全局变量
-    if (op2[0] == '%' || op2[0] == '@') {
-        op2 = op2.substr(1); // 去掉前缀 '%'
-    }
+    op2 = ssa2riscv(op2); // 去掉前缀 '%'
 
     std::string tempReg1;
     std::string tempReg2;
@@ -447,11 +431,6 @@ void RiscvGenerator::generateArithmetic(const LLVM_INS &inst) {
 
     //更新寄存器映射
     _regMap[dest] = resultReg;
-
-    // 将结果存储到栈上
-    _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sw " << resultReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 
@@ -466,10 +445,7 @@ void RiscvGenerator::generateBranch(const LLVM_INS &inst) {
 
     if (inst.operands.size() == 1) {
         // 无条件跳转
-        std::string targetLabel = inst.operands[0];
-        if (targetLabel[0] == '%') {
-            targetLabel = targetLabel.substr(1); // 去掉前缀 '%'
-        }
+        std::string targetLabel = ssa2riscv(inst.operands[0]);
         targetLabel = _currentFunction.name + "_" + targetLabel; // 添加函数名前缀
         _textSection << "  # Unconditional branch to " << targetLabel << "\n";
         _textSection << "  j " << targetLabel << "\n";
@@ -477,9 +453,7 @@ void RiscvGenerator::generateBranch(const LLVM_INS &inst) {
         // 有条件跳转
         std::string cond = inst.operands[0]; // 条件
         bool global_cond = cond[0] == '@'; // 检查是否是全局变量
-        if (cond[0] == '%' || cond[0] == '@') {
-            cond = cond.substr(1); // 去掉前缀 '%'
-        }
+        cond = ssa2riscv(cond); // 去掉前缀 '%'
         std::string trueLabel = inst.operands[1]; // 真分支标签
         trueLabel = _currentFunction.name + "_" + trueLabel; // 添加函数名前缀
         std::string falseLabel = inst.operands[2]; // 假分支标签
@@ -525,10 +499,7 @@ void RiscvGenerator::generateRet(const LLVM_INS &inst) {
         _textSection << "  j .L" << _currentFunction.name << "_exit\n";
     } else {
         // 有返回值的函数
-        std::string retVal = inst.operands[0]; // 返回值
-        if (retVal[0] == '%' || retVal[0] == '@') {
-            retVal = retVal.substr(1); // 去掉前缀 '%'
-        }
+        std::string retVal = ssa2riscv(inst.operands[0]); // 返回值
         if (std::regex_match(retVal, std::regex(R"(-?\d+)"))) {
             // 如果是立即数，直接将其加载到 a0 寄存器
             _textSection << "  # Return immediate value " << retVal << " from function\n";
@@ -558,100 +529,80 @@ void RiscvGenerator::generateGEP(const LLVM_INS &instr) {
     //   slli t2, t2, 3  // 假设每个元素是 [2 x i32]，乘以 8
     //   add t0, t0, t1  // 加上第一个索引的偏移
     //   add t0, t0, t2  // 加上第二个索引的偏移
-    std::string dest = instr.result;
-    if (dest[0] == '%' || dest[0] == '@') {
-        dest = dest.substr(1); // 去掉前缀 '%'
-    }
+    std::string dest = ssa2riscv(instr.result); // 目标寄存器
     // instr.operands[0] 是整条指令, 使用正则匹配提取源指针
     std::regex re(R"(\* ([^,]+))");
     std::smatch match;
     std::regex_search(instr.operands[0], match, re);
     std::string srcPtr = match[1]; // 提取源指针
     bool global_src = srcPtr[0] == '@'; // 检查是否是全局变量
-    if (srcPtr[0] == '%' || srcPtr[0] == '@') {
-        srcPtr = srcPtr.substr(1); // 去掉前缀 '%'
-    }
+    srcPtr = ssa2riscv(srcPtr); // 去掉前缀 '%'
     _textSection << "  # GEP " << dest << " from " << srcPtr << "\n";
     std::string srcReg;
     if (global_src) {
         srcReg = getTempReg(); // 如果是全局变量，直接加载到临时寄存器
         _textSection << " la " << srcReg << ", " << srcPtr << "\n"; // 从全局变量加载地址
-    } else if (_regMap.find(srcPtr) != _regMap.end()) {
-        srcReg = _regMap[srcPtr]; // 如果在寄存器中
     } else {
         srcReg = getTempReg(); // 否则分配一个临时寄存器
         int offset = _currentFrame.getOffset(srcPtr);
-        _textSection << "  ld " << srcReg << ", " << offset << "(sp)\n"; // 从栈加载值
+        _textSection << "  addi " << srcReg << ", sp, " << offset << "\n"; // 将栈指针偏移量加载到临时寄存器
     }
+
     std::vector<std::string> indices;
     std::vector<int> indexlen;
-    std::regex reIndex(R"(i32\s+((\d+)|(%[\w]+)))"); // 匹配 i32 后面的索引
-    std::string instruction = instr.operands[0];
-    while (std::regex_search(instruction, match, reIndex)) {
-        std::string indexStr = match[1].str();
-        if (std::regex_match(indexStr, std::regex(R"(\d+)"))) {
-            indices.push_back(indexStr); // 如果是数字，直接添加到索引列表
-        } else {
-            // 如果是变量，查找寄存器映射
-            if (indexStr[0] == '%' || indexStr[0] == '@') {
-                indexStr = indexStr.substr(1); // 去掉前缀 '%'
-            }
-            if (_regMap.find(indexStr) != _regMap.end()) {
-                std::string tempReg = getTempReg(); // 分配一个临时寄存器
-                _textSection << "  mv " << tempReg << ", " << _regMap[indexStr] << "\n"; // 将寄存器值移动到临时寄存器
-                indices.push_back(tempReg); // 将临时寄存器添加到索引列表
-            } else {
-                int offset = _currentFrame.getOffset(indexStr);
-                std::string tempReg = getTempReg(); // 分配一个临时寄存器
-                _textSection << "  lw " << tempReg << ", " << offset << "(sp)\n"; // 从栈加载值
-                indices.push_back(tempReg); // 将临时寄存器添加到索引列表
-            }
-        }
-        instruction = match.suffix().str(); // 更新指令字符串
-    }
+    // 获得各个维度的长度
     std::regex reIndexLen(R"((\d+)\s+x)");
-    instruction = instr.operands[0];
+    std::string instruction = instr.operands[0];
     while (std::regex_search(instruction, match, reIndexLen)) {
         indexlen.push_back(std::stoi(match[1].str()));
         instruction = match.suffix().str(); // 更新指令字符串
     }
-    reverse(indices.begin(), indices.end());
-    reverse(indexlen.begin(), indexlen.end());
-    // 计算偏移量
+    reverse(indexlen.begin(), indexlen.end()); // 反转索引长度列表，因为 GEP 的索引是从内到外的
+    // 获得各个维度的索引
+    std::regex reIndex(R"(i32\s+((\d+)|(%[\w]+)))"); // 匹配 i32 后面的索引
+    instruction = instr.operands[0];
+    std::vector<std::smatch> matches;
+    auto words_begin = std::sregex_iterator(instruction.begin(), instruction.end(), reIndex);
+    auto words_end = std::sregex_iterator();
+    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        std::smatch match = *i;
+        matches.push_back(match);
+    }
+    // 计算索引
     int offset = 0;
     int len = 1;
-    std::string offsetReg = getTempReg(); // 分配一个临时寄存器来存储偏移量
-    std::string indexReg = getTempReg(); // 分配一个临时寄存器来存储索引值
+    std::string offsetReg = getTempReg();
+    std::string indexReg = getTempReg();
     std::string indexLenReg = getTempReg();
     _textSection << "  # Calculate GEP offset for " << dest << "\n";
-    _textSection << "  li " << offsetReg << ", 0\n"; // 初始化偏移量寄存器为0
-    for (size_t i = 0; i < indices.size(); ++i) {
+    _textSection << "  li " << offsetReg << ", 0\n"; // 初始化偏移量寄存器
+    for (auto it = matches.rbegin(); it != matches.rend(); ++it) {
+        std::smatch match = *it;
+        std::string indexStr = match[1].str();
         int index;
-        if (std::regex_match(indices[i], std::regex(R"(\d+)"))) {
-            index = std::stoi(indices[i]); // 如果是数字，直接转换
-            _textSection << "  li " << indexReg << ", " << index << "\n"; // 将数字加载到临时寄存器
+        if (std::regex_match(indexStr, std::regex(R"(\d+)"))) {
+            index = std::stoi(indexStr); // 如果是数字，直接转换
+            _textSection << "  li " << indexReg << ", " << index << "\n"; // 将索引加载到寄存器
         } else {
-            _textSection << "  mv " << indexReg << ", " << indices[i] << "\n"; // 如果是寄存器，直接移动
+            indexStr = ssa2riscv(indexStr); // 如果是变量，去掉前缀 '%'
+            if (_regMap.find(indexStr) != _regMap.end()) {
+                indexReg = _regMap[indexStr]; // 如果在寄存器中
+            } else {
+                int indexOffset = _currentFrame.getOffset(indexStr);
+                _textSection << "  lw " << indexReg << ", " << indexOffset << "(sp)\n"; // 从栈加载索引值
+            }
         }
-        _textSection << "  li " << indexLenReg << ", " << (len * 4) << "\n"; // 假设每个元素是 i32，乘以 4
-        _textSection << "  mul " << indexReg << ", " << indexReg << ", " << indexLenReg << "\n"; // 将索引寄存器乘以元素长度
-        _textSection << "  add " << offsetReg << ", " << offsetReg << ", " << indexReg << "\n"; // 将偏移量寄存器加上索引寄存器
-        // offset += index * (len * 4); // 假设每个元素是 i32，乘以 4
-        len *= indexlen[i];
+        _textSection << "  li " << indexLenReg << ", " << (len * 4) << "\n";
+        _textSection << "  mul " << indexReg << ", " << indexReg << ", " << indexLenReg << "\n"; // 计算索引偏移
+        _textSection << "  add " << offsetReg << ", " << offsetReg << ", " << indexReg << "\n"; // 累加偏移量
+        // 更新长度
+        len *= indexlen[(it - matches.rbegin())]; // 更新长度
     }
-
-    // // 将偏移量加载到临时寄存器
-    // std::string offsetReg = getTempReg();
-    // _textSection << "  li " << offsetReg << ", " << offset << "\n"; // 将偏移量加载到寄存器
     // 计算最终地址
     std::string destReg = getTempReg(); // 分配一个新的临时寄存器来存储结果地址
     _textSection << "  add " << destReg << ", " << srcReg << ", " << offsetReg << "\n"; // 将源指针和偏移量相加
     // 更新寄存器映射
     _regMap[dest] = destReg; // 将结果寄存器映射到目标变量
-    // 将结果存储到栈上
-    _currentFrame.addLocal(dest, 8); // 地址长度为8B
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sd " << destReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 void RiscvGenerator::generateMemcpy(const LLVM_INS &intr) {
@@ -669,27 +620,21 @@ void RiscvGenerator::generateMemcpy(const LLVM_INS &intr) {
     //   addi t2, t2, -1
     //   j copy_loop
     //copy_done:
-    std::string dest = intr.operands[0];
-    if (dest[0] == '%' || dest[0] == '@') {
-        dest = dest.substr(1); // 去掉前缀 '%'
-    }
-    std::string src = intr.operands[1];
-    if (src[0] == '%' || src[0] == '@') {
-        src = src.substr(1); // 去掉前缀 '%'
-    }
+    std::string dest = ssa2riscv(intr.operands[0]);
+    std::string src = ssa2riscv(intr.operands[1]);
     std::string size = intr.operands[2];
 
     std::string destReg = getTempReg(); // 分配一个临时寄存器来存储目标地址
     int offset = _currentFrame.getOffset(dest);
     _textSection << "  # Memcpy from " << src << " to " << dest << " of size " << size << "\n";
-    _textSection << "  ld " << destReg << ", " << offset << "(sp)\n"; // 从栈加载目标地址
+    _textSection << "  addi " << destReg << ", sp, " << offset << "\n"; // 将栈指针偏移量加载到目标寄存器
     std::string srcReg;
     if (_regMap.find(src) != _regMap.end()) {
         srcReg = _regMap[src]; // 如果在寄存器中
     } else {
         srcReg = getTempReg(); // 否则分配一个临时寄存器
         int srcOffset = _currentFrame.getOffset(src);
-        _textSection << "  lw " << srcReg << ", " << srcOffset << "(sp)\n"; // 从栈加载值
+        _textSection << "  ld " << srcReg << ", " << srcOffset << "(sp)\n"; // 从栈加载值
     }
 
     std::string sizeReg = getTempReg(); // 分配一个临时寄存器来存储大小
@@ -711,28 +656,18 @@ void RiscvGenerator::generateMemcpy(const LLVM_INS &intr) {
 void RiscvGenerator::generateBitCast(const LLVM_INS &intr) {
     // 示例: %cast_i8_a3 = bitcast [4 x [2 x i32]]* %a1 to i8*
 
-    std::string dest = intr.result;
-    if (dest[0] == '%' || dest[0] == '@') {
-        dest = dest.substr(1); // 去掉前缀 '%'
-    }
+    std::string dest = ssa2riscv(intr.result); // 目标寄存器
     std::string src = intr.operands[0];
     bool global_src = src[0] == '@'; // 检查是否是全局变量
-    if (src[0] == '%' || src[0] == '@') {
-        src = src.substr(1); // 去掉前缀 '%'
-    }
+    src = ssa2riscv(src); // 去掉前缀 '%'
     if (global_src) {
         std::string tempReg = getTempReg();
         _textSection << "  # Bitcast " << src << " to " << dest << "\n";
         _textSection << "  la " << tempReg << ", " << src << "\n"; // 将全局变量地址加载到临时寄存器
-
-        _currentFrame.addLocal(dest, 8); // 假设 i8* 占用 8 字节
-        int offset = _currentFrame.getOffset(dest);
-        _textSection << "  sd " << tempReg << ", " << offset << "(sp)\n"; // 将地址存储到栈上
         _regMap[dest] = tempReg; // 更新寄存器映射
     } else {
         _currentFrame.bitCast(src, dest);
     }
-
 }
 
 void RiscvGenerator::generateCall(const LLVM_INS &intr) {
@@ -742,10 +677,7 @@ void RiscvGenerator::generateCall(const LLVM_INS &intr) {
     //   mv a1, b
     //   jal foo
 
-    std::string funcName = intr.operands[0]; // 函数名
-    if (funcName[0] == '@') {
-        funcName = funcName.substr(1); // 去掉前缀 '@'
-    }
+    std::string funcName = ssa2riscv(intr.operands[0]); // 函数名
 
     _textSection << "  # Call function " << funcName << "\n";
 
@@ -758,9 +690,7 @@ void RiscvGenerator::generateCall(const LLVM_INS &intr) {
         std::string arg = match[0].str(); // 提取参数名
         params = match.suffix().str(); // 更新参数字符串
         bool global_arg = arg[0] == '@'; // 检查是否是全局变量
-        if (arg[0] == '%' || arg[0] == '@') {
-            arg = arg.substr(1); // 去掉前缀 '%'
-        }
+        arg = ssa2riscv(arg); // 去掉前缀 '%'
         if (std::regex_match(arg, std::regex(R"(\s\-?\d+)"))) {
             // 如果是立即数，直接将其加载到寄存器
             _textSection << "   li a" << paramCnt++ << ", " << arg << "\n"; // 将立即数加载到寄存器
@@ -781,11 +711,10 @@ void RiscvGenerator::generateCall(const LLVM_INS &intr) {
 
     // 如果函数有返回值，假设返回值在 a0 寄存器中
     if (!intr.result.empty()) {
-        std::string retVar = intr.result.substr(1); // 去掉前缀 '%'
-        _regMap[retVar] = "a0"; // 更新寄存器映射
-        _currentFrame.addLocal(retVar, 4); // 假设返回值是 i32，分配 4 字节
-        int offset = _currentFrame.getOffset(retVar);
-        _textSection << "  sw a0, " << offset << "(sp)\n"; // 将返回值存储到栈上
+        std::string retVar = ssa2riscv(intr.result); // 去掉前缀 '%'
+        std::string tempReg = getTempReg(); // 分配一个临时寄存器来存储返回值
+        _textSection << "  mv " << tempReg << ", a0\n"; // 将返回值移动到临时寄存器
+        _regMap[retVar] = tempReg; // 更新寄存器映射
     }
 }
 
@@ -798,20 +727,13 @@ void RiscvGenerator::generateIcmp(const LLVM_INS &intr) {
     //   bne t0, t1, neq_label
     //   li t2, 1
     //neq_label:
-    std::string dest = intr.result; // 目标位置
-    if (dest[0] == '%' || dest[0] == '@') {
-        dest = dest.substr(1); // 去掉前缀 '%'
-    }
+    std::string dest = ssa2riscv(intr.result); // 目标位置
     std::string op1 = intr.operands[0]; // 第一个操作数
     bool global_op1 = op1[0] == '@'; // 检查是否是全局变量
-    if (op1[0] == '%' || op1[0] == '@') {
-        op1 = op1.substr(1); // 去掉前缀 '%'
-    }
+    op1 = ssa2riscv(op1); // 去掉前缀 '%'
     std::string op2 = intr.operands[1]; // 第二个操作数
     bool global_op2 = op2[0] == '@'; // 检查是否是全局变量
-    if (op2[0] == '%' || op2[0] == '@') {
-        op2 = op2.substr(1); // 去掉前缀 '%'
-    }
+    op2 = ssa2riscv(op2); // 去掉前缀 '%'
 
     std::string tempReg1;
     std::string tempReg2;
@@ -871,21 +793,14 @@ void RiscvGenerator::generateIcmp(const LLVM_INS &intr) {
     _textSection << "Icmp_" << dest << ":\n"; // neq 标签
     // 更新寄存器映射
     _regMap[dest] = resultReg; // 将结果寄存器映射到目标变量
-    // 将结果存储到栈上
-    _currentFrame.addLocal(dest, 4);
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sw " << resultReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 void RiscvGenerator::generatePhi(const LLVM_INS &intr) {
     // 示例: %a = phi i32 [ 1, %bb1 ], [ 2, %bb2 ]
 
     std::string resReg = "s1";
-    if (intr.result == "1") {
-        std::string phiSource = intr.operands[0];
-        if (phiSource[0] == '%' || phiSource[0] == '@') {
-            phiSource = phiSource.substr(1); // 去掉前缀 '%'
-        }
+    if (intr.result == "null") {
+        std::string phiSource = ssa2riscv(intr.operands[0]);
         _textSection << "  # Phi source" << "\n";
         if (phiSource == "true") {
             _textSection << "  li " << resReg << ", 1\n"; // 将 true 转换为 1
@@ -913,9 +828,6 @@ void RiscvGenerator::generatePhi(const LLVM_INS &intr) {
     std::string phiReg = getTempReg(); // 分配一个临时寄存器来存储结果
     _textSection << "   mv " << phiReg << ", " << resReg << "\n"; // 初始化结果寄存器
     _regMap[dest] = phiReg; // 更新寄存器映射
-    _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sw " << phiReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 void RiscvGenerator::generateLogical(const LLVM_INS &intr) {
@@ -994,30 +906,45 @@ void RiscvGenerator::generateLogical(const LLVM_INS &intr) {
     }
     // 更新寄存器映射
     _regMap[dest] = resultReg; // 将结果寄存器映射到目标变量
-    // 将结果存储到栈上
-    _currentFrame.addLocal(dest, 4); // 假设每个元素是 i32，分配 4 字节
-    int destOffset = _currentFrame.getOffset(dest);
-    _textSection << "  sw " << resultReg << ", " << destOffset << "(sp)\n"; // 将结果存储到栈上
 }
 
 std::string RiscvGenerator::getTempReg() {
     tempRegIndex = tempRegIndex % 7; // 使用 7 个临时寄存器 t0-t6
-    if (_usedRegs[tempRegIndex]) {
-        // 如果当前寄存器已被使用，把寄存器中的值存储到栈上
-        std::string VarName;
-        for (const auto &pair : _regMap) {
-            if (pair.second == "t" + std::to_string(tempRegIndex)) {
-                VarName = pair.first; // 找到对应的变量名
-                break;
-            }
-        }
-        if (!VarName.empty() && _currentFrame.hasLocal(VarName)) {
-            int offset = _currentFrame.getOffset(VarName);
-            _textSection << "  # Storing t" << tempRegIndex << " to stack for variable " << VarName << "\n";
-            _textSection << "  sw t" << tempRegIndex << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
-            _regMap.erase(VarName); // 从寄存器映射中移除
-        }
+    // if (_usedRegs[tempRegIndex]) {
+    //     // 如果当前寄存器已被使用，把寄存器中的值存储到栈上
+    //     std::string VarName;
+    //     for (const auto &pair : _regMap) {
+    //         if (pair.second == "t" + std::to_string(tempRegIndex)) {
+    //             VarName = pair.first; // 找到对应的变量名
+    //             break;
+    //         }
+    //     }
+    //     if (!VarName.empty() && _currentFrame.hasLocal(VarName)) {
+    //         int offset = _currentFrame.getOffset(VarName);
+    //         _textSection << "  # Storing t" << tempRegIndex << " to stack for variable " << VarName << "\n";
+    //         _textSection << "  sw t" << tempRegIndex << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+    //         _regMap.erase(VarName); // 从寄存器映射中移除
+    //     }
+    // }
+    // _usedRegs[tempRegIndex] = true; // 标记寄存器为已使用
+    for (const auto &pair : _regMap) {
+       if (pair.second == "t" + std::to_string(tempRegIndex)) {
+           std::string VarName = pair.first; // 找到对应的变量名
+           if (_currentFrame.hasLocal(VarName)) {
+               int offset = _currentFrame.getOffset(VarName);
+               int size = _currentFrame.getSize(VarName);
+               _textSection << "  # Storing t" << tempRegIndex << " to stack for variable " << VarName << "\n";
+               if (size == 4) {
+                   _textSection << "  sw t" << tempRegIndex << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+               } else if (size == 8) {
+                   _textSection << "  sd t" << tempRegIndex << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+               } else {
+                   throw std::runtime_error("Unsupported variable size for storing in stack");
+               }
+               _regMap.erase(VarName); // 从寄存器映射中移除
+           }
+           break;
+       }
     }
-    _usedRegs[tempRegIndex] = true; // 标记寄存器为已使用
     return "t" + std::to_string(tempRegIndex++); // 返回 t0, t1, t2, ...
 }
