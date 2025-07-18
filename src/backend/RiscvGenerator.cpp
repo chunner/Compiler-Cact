@@ -889,6 +889,8 @@ void RiscvGenerator::generateCall(const LLVM_INS &intr) {
         }
 
     }
+    // 保存寄存器状态
+    releaseAllTempRegs(); // 释放所有临时寄存器
     _textSection << "  jal " << funcName << "\n"; // 调用函数
 
     // 如果函数有返回值，假设返回值在 a0 寄存器中
@@ -1212,4 +1214,46 @@ std::string RiscvGenerator::getFloatTempReg() {
     }
 
     return "ft" + std::to_string(tempFloatRegIndex++); // 返回 ft0, ft1, ft2, ...
+}
+
+void RiscvGenerator::releaseAllTempRegs() {
+    // 释放所有临时寄存器
+    for (int i = 0; i < 7; ++i) {
+        std::string reg = "t" + std::to_string(i);
+        if (_regMap.find(reg) != _regMap.end()) {
+            std::string varName = _regMap[reg];
+            if (_currentFrame.hasLocal(varName)) {
+                int offset = _currentFrame.getOffset(varName);
+                int size = _currentFrame.getSize(varName);
+                _textSection << "  # Releasing temporary register " << reg << " to stack for variable " << varName << "\n";
+                if (size == 4) {
+                    _textSection << "  sw " << reg << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+                } else if (size == 8) {
+                    _textSection << "  sd " << reg << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+                } else {
+                    throw std::runtime_error("Unsupported variable size for storing in stack");
+                }
+            }
+            _regMap.erase(varName); // 从寄存器映射中移除
+        }
+        reg = "ft" + std::to_string(i);
+        if (_regMap.find(reg) != _regMap.end()) {
+            std::string varName = _regMap[reg];
+            if (_currentFrame.hasLocal(varName)) {
+                int offset = _currentFrame.getOffset(varName);
+                int size = _currentFrame.getSize(varName);
+                _textSection << "  # Releasing temporary register " << reg << " to stack for variable " << varName << "\n";
+                if (size == 4) {
+                    _textSection << "  fsw " << reg << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+                } else if (size == 8) {
+                    _textSection << "  fd " << reg << ", " << offset << "(sp)\n"; // 将寄存器值存储到栈上
+                } else {
+                    throw std::runtime_error("Unsupported variable size for storing in stack");
+                }
+            }
+            _regMap.erase(varName); // 从寄存器映射中移除
+        }
+    }
+    tempRegIndex = 0; // 重置临时寄存器索引
+    tempFloatRegIndex = 0; // 重置浮点临时寄存器索引
 }

@@ -61,6 +61,7 @@ private:
     std::vector<bool> _usedRegs;
     int tempRegIndex;
     int tempFloatRegIndex;
+    void releaseAllTempRegs(); // 释放所有临时寄存器
 
     // === 辅助函数 ===
     std::string getTempReg(); // 获取一个临时寄存器
