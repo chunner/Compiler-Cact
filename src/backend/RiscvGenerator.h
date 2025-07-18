@@ -60,12 +60,11 @@ private:
     std::unordered_map<std::string, std::string> _regMap;
     std::vector<bool> _usedRegs;
     int tempRegIndex;
+    int tempFloatRegIndex;
 
     // === 辅助函数 ===
     std::string getTempReg(); // 获取一个临时寄存器
-    void freeTempReg(const std::string &reg); // 释放临时寄存器
-    std::string loadToReg(const std::string &llvmVar); // 将变量从栈加载到寄存器
-    void storeFromReg(const std::string &llvmVar, const std::string &reg); // 将寄存器值存回栈
+    std::string getFloatTempReg();
 
     // 指令生成函数
     void generateFunction(const LLVMFunction &func);
@@ -88,7 +87,9 @@ private:
     void generateRet(const LLVM_INS &instr);
     void generateGEP(const LLVM_INS &instr);
     void generateIcmp(const LLVM_INS &instr);
+    void generateFcmp(const LLVM_INS &instr);
     void generateLogical(const LLVM_INS &instr);
+    void generateFArithetic(const LLVM_INS &instr);
 
     // 关键！从LLVM变量名 (e.g., "%1") 到其存储位置的映射
     // std::unordered_map<std::string, VariableLocation> _locationMap;
